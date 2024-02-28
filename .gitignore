@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 
 *.exe
+/WfcOnSiv3D/App/AS_DEBUG
