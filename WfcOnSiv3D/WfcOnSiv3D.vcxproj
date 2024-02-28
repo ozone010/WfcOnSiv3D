@@ -119,6 +119,7 @@
     <ClCompile Include="BitmapHelper.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="RandomHelper.cpp" />
+    <ClCompile Include="SimpleTiledModel.cpp" />
     <ClCompile Include="WfcModel.cpp" />
     <ClCompile Include="OverlappingModel.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -229,6 +230,7 @@
   <ItemGroup>
     <ClInclude Include="BitmapHelper.h" />
     <ClInclude Include="RandomHelper.h" />
+    <ClInclude Include="SimpleTiledModel.h" />
     <ClInclude Include="WfcModel.h" />
     <ClInclude Include="OverlappingModel.h" />
     <ClInclude Include="stdafx.h" />
