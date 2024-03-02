@@ -18,8 +18,8 @@ protected:
 	int32 stacksize = 0;
 	int32 observedSoFar = 0;
 
-	int32 MX = 0;
-	int32 MY = 0;
+	Size gridSize{0,0};
+
 	int32 T = 0;
 	int32 N = 0;
 	bool periodic = false;
@@ -43,12 +43,12 @@ protected:
 	const Array<int32> opposite{ 2, 3, 0, 1 };
 
 
-	WfcModel(int32 width, int32 height, int32 N, bool periodic, Heuristic heuristic)
-		: MX(width), MY(height), N(N), periodic(periodic), heuristic(heuristic) {}
+	WfcModel(const Size& gridSize, int32 N, bool periodic, Heuristic heuristic)
+		: gridSize(gridSize), N(N), periodic(periodic), heuristic(heuristic) {}
 
 public:
 	void Init() {
-		wave.resize(MX * MY, Array<bool>(T));
+		wave.resize(gridSize.x * gridSize.y, Array<bool>(T));
 		compatible.resize(wave.size(), Array<Array<int32>>(T, Array<int32>(4)));
 
 		for (int32 i = 0; i < wave.size(); i++) {
@@ -58,7 +58,7 @@ public:
 		}
 
 		distribution.resize(T);
-		observed.resize(MX * MY);
+		observed.resize(gridSize.x * gridSize.y);
 
 		weightLogWeights.resize(T);
 		sumOfWeights = 0;
@@ -72,10 +72,10 @@ public:
 
 		startingEntropy = log(sumOfWeights) - sumOfWeightLogWeights / sumOfWeights;
 
-		sumsOfOnes.resize(MX * MY);
-		sumsOfWeights.resize(MX * MY);
-		sumsOfWeightLogWeights.resize(MX * MY);
-		entropies.resize(MX * MY);
+		sumsOfOnes.resize(gridSize.x * gridSize.y);
+		sumsOfWeights.resize(gridSize.x * gridSize.y);
+		sumsOfWeightLogWeights.resize(gridSize.x * gridSize.y);
+		entropies.resize(gridSize.x * gridSize.y);
 
 		stack.resize(wave.size() * T, std::make_pair<int32, int32>(0, 0));
 		stacksize = 0;
@@ -98,12 +98,12 @@ public:
 		observedSoFar = 0;
 
 		if (ground) {
-			for (int32 x = 0; x < MX; x++) {
+			for (int32 x = 0; x < gridSize.x; x++) {
 				for (int32 t = 0; t < T - 1; t++) {
-					Ban(x + (MY - 1) * MX, t);
+					Ban(x + (gridSize.y - 1) * gridSize.x, t);
 				}
-				for (int32 y = 0; y < MY - 1; y++) {
-					Ban(x + y * MX, T - 1);
+				for (int32 y = 0; y < gridSize.y - 1; y++) {
+					Ban(x + y * gridSize.x, T - 1);
 				}
 			}
 			Propagate();
@@ -179,7 +179,7 @@ public:
 		if (heuristic == Heuristic::Scanline) {
 			for (int32 i = observedSoFar; i < wave.size(); i++) {
 
-				if (!periodic && (i % MX + N > MX || i / MX + N > MY))
+				if (!periodic && (i % gridSize.x + N > gridSize.x || i / gridSize.x + N > gridSize.y))
 					continue;
 
 				if (sumsOfOnes[i] > 1) {
@@ -193,7 +193,7 @@ public:
 		double min = 1E+4;
 		int32 argmin = -1;
 		for (int32 i = 0; i < wave.size(); i++) {
-			if (!periodic && (i % MX + N > MX || i / MX + N > MY))
+			if (!periodic && (i % gridSize.x + N > gridSize.x || i / gridSize.x + N > gridSize.y))
 				continue;
 
 			int32 remainingValues = sumsOfOnes[i];
@@ -253,28 +253,28 @@ private:
 			std::pair<int32, int32> current = stack[stacksize - 1];
 			stacksize--;
 
-			int32 x1 = current.first % MX;
-			int32 y1 = current.first / MX;
+			int32 x1 = current.first % gridSize.x;
+			int32 y1 = current.first / gridSize.x;
 			int32 t1 = current.second;
 
 			for (int32 d = 0; d < 4; d++) {
 				int32 x2 = x1 + dx[d];
 				int32 y2 = y1 + dy[d];
 
-				if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY))
+				if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > gridSize.x || y2 + N > gridSize.y))
 					continue;
 
 				if (x2 < 0)
-					x2 += MX;
-				else if (x2 >= MX)
-					x2 -= MX;
+					x2 += gridSize.x;
+				else if (x2 >= gridSize.x)
+					x2 -= gridSize.x;
 
 				if (y2 < 0)
-					y2 += MY;
-				else if (y2 >= MY)
-					y2 -= MY;
+					y2 += gridSize.y;
+				else if (y2 >= gridSize.y)
+					y2 -= gridSize.y;
 
-				int32 i2 = x2 + y2 * MX;
+				int32 i2 = x2 + y2 * gridSize.x;
 				Array<int32>& p = propagator[d][t1];
 				Array<Array<int32>>& compat = compatible[i2];
 
