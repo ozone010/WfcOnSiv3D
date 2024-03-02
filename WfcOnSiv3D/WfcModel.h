@@ -5,7 +5,6 @@ class WfcModel {
 
 public:
 	enum Heuristic { Entropy, MRV, Scanline };
-	Heuristic heuristic;
 
 
 protected:
@@ -33,8 +32,11 @@ protected:
 	double sumOfWeights = 0;
 	double sumOfWeightLogWeights = 0;
 	double startingEntropy = 0;
-	Array<double> sumsOfWeights, sumsOfWeightLogWeights, entropies;
+	Array<double> sumsOfWeights;
+	Array<double> sumsOfWeightLogWeights;
+	Array<double> entropies;
 
+	Heuristic heuristic;
 
 	const Array<int32> dx{ -1, 0, 1, 0 };
 	const Array<int32> dy{ 0, 1, 0, -1 };
@@ -44,6 +46,7 @@ protected:
 	WfcModel(int32 width, int32 height, int32 N, bool periodic, Heuristic heuristic)
 		: MX(width), MY(height), N(N), periodic(periodic), heuristic(heuristic) {}
 
+public:
 	void Init() {
 		wave.resize(MX * MY, Array<bool>(T));
 		compatible.resize(wave.size(), Array<Array<int32>>(T, Array<int32>(4)));
@@ -77,8 +80,6 @@ protected:
 		stack.resize(wave.size() * T, std::make_pair<int32, int32>(0, 0));
 		stacksize = 0;
 	}
-
-public:
 
 	void Clear() {
 		for (int32 i = 0; i < wave.size(); i++) {
@@ -122,7 +123,9 @@ public:
 			if (node >= 0) {
 				Observe(node);
 				bool success = Propagate();
-				if (!success) return false;
+				if (!success){
+					return false;
+				}
 			}
 			else {
 				for (int32 i = 0; i < wave.size(); i++) {
@@ -138,6 +141,38 @@ public:
 		}
 
 		return true;
+	}
+
+	void RunOneStep() {
+
+		if (wave.empty()) {
+			Init();
+			Clear();
+		}
+
+		int32 node = NextUnobservedNode();
+		if (node >= 0) {
+			Observe(node);
+			bool success = Propagate();
+			if (!success) {
+				return;
+			}
+		}
+		else {
+			for (int32 i = 0; i < wave.size(); i++) {
+				for (int32 t = 0; t < T; t++) {
+					if (wave[i][t]) {
+						observed[i] = t;
+						break;
+					}
+				}
+			}
+			return;
+		}
+	}
+
+	bool HasCompleted() {
+		return not wave.isEmpty() && sumsOfOnes.sum() == sumsOfOnes.size();
 	}
 
 	int32 NextUnobservedNode() {
@@ -174,9 +209,32 @@ public:
 		}
 		return argmin;
 	}
+private:
+
+	bool next() {
+		int32 node = NextUnobservedNode();
+		if (node >= 0) {
+			Observe(node);
+			bool success = Propagate();
+			if (!success) {
+				return false;
+			}
+		}
+		else {
+			for (int32 i = 0; i < wave.size(); i++) {
+				for (int32 t = 0; t < T; t++) {
+					if (wave[i][t]) {
+						observed[i] = t;
+						break;
+					}
+				}
+			}
+			return true;
+		}
+	}
 
 	void Observe(int32 node) {
-		Array<bool>& w = wave[node];
+		const Array<bool>& w = wave[node];
 
 		for (int32 t = 0; t < T; t++)
 			distribution[t] = w[t] ? weights[t] : 0.0;
@@ -249,5 +307,4 @@ public:
 		entropies[i] = Math::Log(sum) - sumsOfWeightLogWeights[i] / sum;
 	}
 
-	virtual Image ToImage() = 0;
 };
