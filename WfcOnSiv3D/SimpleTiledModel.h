@@ -255,7 +255,7 @@ public:
 		}
 	}
 
-	Image ToImage()
+	Image ToImage() const
 	{
 		Grid<Color> bitmapData(gridSize * tilesize);
 		if (observed[0] >= 0)
@@ -316,5 +316,14 @@ public:
 			}
 		}
 		return BitmapHelper::ToImage(bitmapData);
+	}
+
+	int32 Tilesize() const {
+		return tilesize;
+	}
+
+	Size ImageSize() const
+	{
+		return gridSize * tilesize;
 	}
 };

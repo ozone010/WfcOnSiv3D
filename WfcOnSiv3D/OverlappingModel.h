@@ -129,7 +129,7 @@ public:
 		}
 	}
 
-	Image ToImage()
+	Image ToImage() const
 	{
 		Grid<Color> bitmap(gridSize);
 
@@ -188,6 +188,11 @@ public:
 		}
 
 		return BitmapHelper::ToImage(bitmap);
+	}
+
+	Size ImageSize() const
+	{
+		return gridSize;
 	}
 };
 

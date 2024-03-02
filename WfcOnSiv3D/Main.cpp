@@ -19,11 +19,10 @@ void Main()
 	const String SRC_IMG_PATH = U"Sewers.png";
 
 	//生成器を作成
-	const Size olSize{ 96,96 };
 	OverlappingModel olModel{
 		SRC_IMG_PATH,
 		3, //N
-		olSize, //gridSize
+		{ 96,96 }, //gridSize
 		true, //periodicInput
 		true, //periodic
 		8, //symmetry
@@ -33,12 +32,10 @@ void Main()
 	olModel.Init();
 	olModel.Clear();
 
-	const Size stGridSize{ 16 ,16 };
-	const Size stTileTextureSize{ 48,48 };
 	SimpleTiledModel stModel{
 		U"tilesets/Summer.json",
 		U"", //subsetName
-		stGridSize, //gridSize
+		{ 16 ,16 }, //gridSize
 		true, //periodic
 		true, //blackBackground
 		WfcModel::Heuristic::Entropy
@@ -46,12 +43,10 @@ void Main()
 	stModel.Init();
 	stModel.Clear();
 
-	const Size st2GridSize{ 16 ,16 };
-	const Size st2TileTextureSize{ 14,14 };
 	SimpleTiledModel st2Model{
 		U"tilesets/Circuit.json",
 		U"Turnless", //subsetName
-		st2GridSize, //gridSize
+		{ 16 ,16 }, //gridSize
 		true, //periodic
 		false, //blackBackground
 		WfcModel::Heuristic::Entropy
@@ -73,9 +68,9 @@ void Main()
 	Texture srcTexture{ SRC_IMG_PATH };
 
 	//生成した画像をテクスチャに変換
-	DynamicTexture olResultTexture(olSize);
-	DynamicTexture stResultTexture(stGridSize * stTileTextureSize);
-	DynamicTexture st2ResultTexture(st2GridSize * st2TileTextureSize);
+	DynamicTexture olResultTexture(olModel.ImageSize());
+	DynamicTexture stResultTexture(stModel.ImageSize());
+	DynamicTexture st2ResultTexture(st2Model.ImageSize());
 
 	olResultTexture.fill(olModel.ToImage());
 	stResultTexture.fill(stModel.ToImage());
