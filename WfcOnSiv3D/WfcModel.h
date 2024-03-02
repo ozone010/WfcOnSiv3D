@@ -46,7 +46,7 @@ protected:
 	WfcModel(int32 width, int32 height, int32 N, bool periodic, Heuristic heuristic)
 		: MX(width), MY(height), N(N), periodic(periodic), heuristic(heuristic) {}
 
-
+public:
 	void Init() {
 		wave.resize(MX * MY, Array<bool>(T));
 		compatible.resize(wave.size(), Array<Array<int32>>(T, Array<int32>(4)));
@@ -110,8 +110,6 @@ protected:
 		}
 	}
 
-public:
-
 	bool Run(int32 seed, int32 limit) {
 		if (wave.empty()) {
 			Init();
@@ -171,6 +169,10 @@ public:
 			}
 			return;
 		}
+	}
+
+	bool HasCompleted() {
+		return not wave.isEmpty() && sumsOfOnes.sum() == sumsOfOnes.size();
 	}
 
 	int32 NextUnobservedNode() {
