@@ -7,7 +7,7 @@ class SimpleTiledModel : public WfcModel
 {
 
 private:
-	Array<Array<int32>> tiles;
+	Array<Array<Color>> tiles;
 	Array<String> tilenames;
 	int32 tilesize = 0;
 	bool blackBackground;
@@ -39,8 +39,8 @@ public:
 			}
 		}
 
-		static auto tile = [](const std::function<int32(int32, int32)>& f, int32 size) {
-			Array<int32> result(size * size, 0);
+		static auto tile = [](const std::function<Color(int32, int32)>& f, int32 size) {
+			Array<Color> result(size * size);
 			for (int32 y = 0; y < size; y++) {
 				for (int32 x = 0; x < size; x++) {
 					result[x + y * size] = f(x, y);
@@ -49,11 +49,11 @@ public:
 			return result;
 		};
 
-		static auto rotate = [](const Array<int32>& array, int32 size) {
+		static auto rotate = [](const Array<Color>& array, int32 size) {
 			return tile([&](int32 x, int32 y) { return array[size - 1 - y + x * size]; }, size);
 		};
 
-		static auto reflect = [](const Array<int32>& array, int32 size) {
+		static auto reflect = [](const Array<Color>& array, int32 size) {
 			return tile([&](int32 x, int32 y) { return array[size - 1 - x + y * size]; }, size);
 		};
 
@@ -257,7 +257,7 @@ public:
 
 	Image ToImage()
 	{
-		Grid<int32> bitmapData(gridSize * tilesize, 0);
+		Grid<Color> bitmapData(gridSize * tilesize);
 		if (observed[0] >= 0)
 		{
 			for (int32 x = 0; x < gridSize.x; x++) {
@@ -266,7 +266,7 @@ public:
 					const auto& tile = tiles[observed[x + y * gridSize.x]];
 					for (int32 dy = 0; dy < tilesize; dy++) {
 						for (int32 dx = 0; dx < tilesize; dx++) {
-							const int32& pixel = tile[dx + dy * tilesize];
+							const auto& pixel = tile[dx + dy * tilesize];
 							bitmapData[y * tilesize + dy][x * tilesize + dx] = pixel;
 						}
 					}
@@ -281,7 +281,7 @@ public:
 				if (blackBackground && sumsOfOnes[i] == T) {
 					for (int32 yt = 0; yt < tilesize; yt++) {
 						for (int32 xt = 0; xt < tilesize; xt++) {
-							bitmapData[y * tilesize + yt][x * tilesize + xt] = 255 << 24;
+							bitmapData[y * tilesize + yt][x * tilesize + xt] = Color(0,0,0,255);
 						}
 					}
 				}
@@ -298,17 +298,18 @@ public:
 							for (int32 t = 0; t < T; t++) {
 								if (w[t])
 								{
-									int32 argb = tiles[t][xt + yt * tilesize];
-									r += ((argb & 0xff0000) >> 16) * weights[t] * normalization;
-									g += ((argb & 0x00ff00) >>  8) * weights[t] * normalization;
-									b += ((argb & 0x0000ff) >>  0) * weights[t] * normalization;
+									const auto& argb = tiles[t][xt + yt * tilesize];
+									r += argb.r * weights[t] * normalization;
+									g += argb.g * weights[t] * normalization;
+									b += argb.b * weights[t] * normalization;
 								}
 							}
 							bitmapData[y * tilesize + yt][x * tilesize + xt] =
-								(static_cast<int32>(0xff000000)) |
-								(static_cast<int32>(r) << 16) |
-								(static_cast<int32>(g) <<  8) |
-								(static_cast<int32>(b) <<  0);
+								Color(
+									static_cast<uint8>(r),
+									static_cast<uint8>(g),
+									static_cast<uint8>(b)
+								);
 						}
 					}
 				}
