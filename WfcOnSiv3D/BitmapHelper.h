@@ -7,9 +7,11 @@ public:
 		const Image image{ path };
 		Array<int32> arr;
 
+		;
+
 		for (auto& pixel : image)
 		{
-			arr << pixel.asUint32();
+			arr << static_cast<int32>(pixel.asUint32());
 		}
 
 		return std::make_tuple(arr, image.width(), image.height());

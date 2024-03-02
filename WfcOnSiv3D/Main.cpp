@@ -7,6 +7,10 @@
 
 void Main()
 {
+	uint32 a = 0xff000000;
+	Array<int32> arr;
+	arr << a;
+
 	//背景色設定
 	Scene::SetBackground(ColorF{ 0.6, 0.6, 0.8 });
 
@@ -30,16 +34,39 @@ void Main()
 		WfcModel::Heuristic::Entropy
 	};
 
-	const Size stGridSize{ 20,20 };
-	const Size stTileTextureSize{ 48,48 };
+	//const Size stGridSize{ 16 ,16 };
+	//const Size stTileTextureSize{ 48,48 };
+	//SimpleTiledModel stModel{
+	//	U"tilesets/Summer.json",
+	//	U"", //subsetName
+	//	stGridSize.x, //width
+	//	stGridSize.y, //height
+	//	true, //periodic
+	//	true, //blackBackground
+	//	WfcModel::Heuristic::Entropy
+	//};
 
+	//const Size stGridSize{ 24,24 };
+	//const Size stTileTextureSize{ 32,32 };
+	//SimpleTiledModel stModel{
+	//	U"tilesets/Circles.json",
+	//	U"Large Circles", //subsetName
+	//	stGridSize.x, //width
+	//	stGridSize.y, //height
+	//	false, //periodic
+	//	false, //blackBackground
+	//	WfcModel::Heuristic::Entropy
+	//};
+
+	const Size stGridSize{ 16 ,16 };
+	const Size stTileTextureSize{ 14,14 };
 	SimpleTiledModel stModel{
-		U"tilesets/Summer.json",
-		U"", //subsetName
+		U"tilesets/Circuit.json",
+		U"Turnless", //subsetName
 		stGridSize.x, //width
 		stGridSize.y, //height
 		true, //periodic
-		true, //blackBackground
+		false, //blackBackground
 		WfcModel::Heuristic::Entropy
 	};
 
@@ -71,7 +98,7 @@ void Main()
 		}
 
 		//Regenerateボタン
-		if (SimpleGUI::Button(U"Generate", Vec2{ 10 + 430, 10 } )) {
+		if (SimpleGUI::Button(U"Generate", Vec2{ 10 + 430, 10 })) {
 
 			//成功するまで生成
 			for (stRetryCount = 0; not stModel.Run(stSeed = Random<int32>(INT_MIN, INT_MAX), -1); ++stRetryCount);
@@ -79,24 +106,30 @@ void Main()
 			//生成した画像をテクスチャに変換
 			stResultTexture.fill(stModel.ToImage());
 		}
+		if (SimpleGUI::Button(U"Step", Vec2{ 10 + 430, 50 } )) {
+
+			//1ステップ
+			stModel.RunOneStep();
+
+			//生成した画像をテクスチャに変換
+			stResultTexture.fill(stModel.ToImage());
+		}
 
 
 		//情報の表示
-		font(U"seed: {}"_fmt(olSeed)).draw(16, Vec2{ 10, 60 });
-		font(U"retryCount: {}"_fmt(olRetryCount)).draw(16, Vec2{ 10, 90 });
+		font(U"seed: {}"_fmt(olSeed)).draw(16, Vec2{ 10, 100 });
+		font(U"retryCount: {}"_fmt(olRetryCount)).draw(16, Vec2{ 10, 140 });
 
-		font(U"seed: {}"_fmt(stSeed)).draw(16, Vec2{ 10 + 430, 60 });
-		font(U"retryCount: {}"_fmt(stRetryCount)).draw(16, Vec2{ 10 + 430, 90 });
-
+		font(U"seed: {}"_fmt(stSeed)).draw(16, Vec2{ 10 + 430, 100 });
+		font(U"retryCount: {}"_fmt(stRetryCount)).draw(16, Vec2{ 10 + 430, 140 });
 
 		const ScopedRenderStates2D sampler{ SamplerState::ClampNearest };
 
 		//元画像を表示
-		srcTexture.scaled(3).draw(10, 130);
+		srcTexture.scaled(3).draw(10, 180);
 
 		//生成画像を表示
-		olResultTexture.scaled(3).draw(100, 130);
-
-		stResultTexture.scaled(0.33).draw(10 + 430, 130);
+		olResultTexture.resized(300).draw(100, 180);
+		stResultTexture.resized(300).draw(10 + 430, 180);
 	}
 }

@@ -7,7 +7,7 @@ class SimpleTiledModel : public WfcModel
 {
 
 private:
-	Array<Array<int>> tiles;
+	Array<Array<int32>> tiles;
 	Array<String> tilenames;
 	int32 tilesize = 0;
 	bool blackBackground;
@@ -20,15 +20,32 @@ public:
 		const auto jsonFileName = FileSystem::BaseName(jsonPath);
 
 		const JSON json = JSON::Load(jsonPath);
-		const JSON jroot = json[U"set"];
+		const JSON& jroot = json[U"set"];
 
-		bool unique = jroot[U"unique"].getOr<bool>(false);
+		bool unique = jroot.hasElement(U"unique") ? jroot[U"unique"].get<bool>() : false;
 
-		static auto tile = [](const std::function<uint8(int32, int32)>& f, int32 size) {
-			Array<int> result(size * size);
-			for (int y = 0; y < size; y++)
-				for (int x = 0; x < size; x++)
+		Array<String> subset;
+		if (not subsetName.isEmpty())
+		{
+			JSON selectedJSubset;
+			for (auto&& [key, jSubset] : jroot[U"subsets"][U"subset"]) {
+				if (jSubset[U"name"].getString() == subsetName) {
+					selectedJSubset = jSubset;
+					break;
+				}
+			}
+			for (auto&& [key, tile] : selectedJSubset[U"tile"]) {
+				subset << tile[U"name"].getString();
+			}
+		}
+
+		static auto tile = [](const std::function<int32(int32, int32)>& f, int32 size) {
+			Array<int32> result(size * size, 0);
+			for (int32 y = 0; y < size; y++) {
+				for (int32 x = 0; x < size; x++) {
 					result[x + y * size] = f(x, y);
+				}
+			}
 			return result;
 		};
 
@@ -42,20 +59,28 @@ public:
 
 
 
+
 		Array<double> weightList;
 		Array<Array<int32>> action;
 
 		HashTable<String, int32> firstOccurrence;
 
-		for (auto&& [key, jTile] : jroot[U"tiles"][U"tile"]) {
-			auto tilename = jTile[U"name"].getString();
+		for (const auto&& [key, jTile] : jroot[U"tiles"][U"tile"]) {
 
+			auto const tilename = jTile[U"name"].getString();
+			if (not subset.isEmpty() && not subset.contains(tilename)) {
+				continue;
+			}
+
+			//a is 90 degrees rotation
 			std::function<int32(int32)> a;
+
+			//b is reflection
 			std::function<int32(int32)> b;
 
 			auto sym = jTile.hasElement(U"symmetry") ? jTile[U"symmetry"].getString() : U"C";
 
-			int32 cardinality;
+			int32 cardinality = 0;
 			if (sym == U"L")
 			{
 				cardinality = 4;
@@ -108,7 +133,9 @@ public:
 				map[t][6] = b(a(a(t)));
 				map[t][7] = b(a(a(a(t))));
 
-				for (int s = 0; s < 8; s++) map[t][s] += T;
+				for (int s = 0; s < 8; s++) {
+					map[t][s] += T;
+				}
 
 				action << map[t];
 			}
@@ -118,8 +145,8 @@ public:
 				for (int t = 0; t < cardinality; t++)
 				{
 					auto x = U"tilesets/{}/{} {}.png"_fmt(jsonFileName, tilename, t);
-					auto [bitmap, tilesize_1, tilesize_2] = BitmapHelper::LoadBitmap(U"tilesets/{}/{} {}.png"_fmt(jsonFileName, tilename, t));
-					tilesize = tilesize_1;
+					auto [bitmap, _w, _h] = BitmapHelper::LoadBitmap(U"tilesets/{}/{} {}.png"_fmt(jsonFileName, tilename, t));
+					tilesize = _w;
 
 					tiles << bitmap;
 					tilenames << U"{} {}"_fmt(tilename,t);
@@ -127,19 +154,20 @@ public:
 			}
 			else
 			{
-				auto [bitmap, tilesize_1, tilesize_2] = BitmapHelper::LoadBitmap(U"tilesets/{}/{}.png"_fmt(jsonFileName, tilename));
-				tilesize = tilesize_1;
+				auto [bitmap, _w, _h] = BitmapHelper::LoadBitmap(U"tilesets/{}/{}.png"_fmt(jsonFileName, tilename));
+				tilesize = _w;
 
 				tiles << bitmap;
 				tilenames << U"{} 0"_fmt(tilename);
 
-				for (int t = 1; t < cardinality; t++)
+				for (int32 t = 1; t < cardinality; t++)
 				{
 					if (t <= 3) {
-						tiles << rotate(tiles[T + t - 1], tilesize);
+						auto test = tiles[T + t - 1];
+						tiles << (rotate(tiles[T + t - 1], tilesize));
 					}
 					if (t >= 4) {
-						tiles << reflect(tiles[T + t - 4], tilesize);
+						tiles << (reflect(tiles[T + t - 4], tilesize));
 					}
 					tilenames << U"{} {}"_fmt(tilename, t);
 				}
@@ -164,10 +192,13 @@ public:
 			}
 		}
 
-		for (auto&& [key, jNeighbor] : jroot[U"neighbors"][U"neighbor"]) {
+		for (const auto&& [key, jNeighbor] : jroot[U"neighbors"][U"neighbor"]) {
 			Array<String> left = jNeighbor[U"left"].getString().split(U' ');
 			Array<String> right = jNeighbor[U"right"].getString().split(U' ');
 
+			if (not subset.isEmpty() && (not subset.contains(left[0]) || not subset.contains(right[0]))) {
+				continue;
+			}
 
 			int32 L = action[firstOccurrence[left[0]]][left.size() == 1 ? 0 : Parse<int32>(left[1])];
 			int32 D = action[L][1];
@@ -206,7 +237,9 @@ public:
 				Array<bool>& tp = densePropagator[d][t1];
 
 				for (int32 t2 = 0; t2 < T; ++t2) {
-					if (tp[t2]) sp.push_back(t2);
+					if (tp[t2]) {
+						sp << (t2);
+					}
 				}
 
 				int32 ST = sp.size();
@@ -230,10 +263,11 @@ public:
 			for (int32 x = 0; x < MX; x++) {
 				for (int32 y = 0; y < MY; y++)
 				{
-					auto& tile = tiles[observed[x + y * MX]];
+					const auto& tile = tiles[observed[x + y * MX]];
 					for (int32 dy = 0; dy < tilesize; dy++) {
 						for (int32 dx = 0; dx < tilesize; dx++) {
-							bitmapData[x * tilesize + dx + (y * tilesize + dy) * MX * tilesize] = tile[dx + dy * tilesize];
+							const int32& pixel = tile[dx + dy * tilesize];
+							bitmapData[x * tilesize + dx + (y * tilesize + dy) * MX * tilesize] = pixel;
 						}
 					}
 				}
@@ -245,26 +279,38 @@ public:
 			{
 				int32 x = i % MX, y = i / MX;
 				if (blackBackground && sumsOfOnes[i] == T) {
-					for (int32 yt = 0; yt < tilesize; yt++) for (int32 xt = 0; xt < tilesize; xt++) {
-						bitmapData[x * tilesize + xt + (y * tilesize + yt) * MX * tilesize] = 255 << 24;
+					for (int32 yt = 0; yt < tilesize; yt++) {
+						for (int32 xt = 0; xt < tilesize; xt++) {
+							bitmapData[x * tilesize + xt + (y * tilesize + yt) * MX * tilesize] = 255 << 24;
+						}
 					}
 				}
 				else
 				{
 					Array<bool> w = wave[i];
-					double normalization = 1.0 / sumsOfWeights[i];
+					double normalization{ 1.0 / sumsOfWeights[i] };
 					for (int32 yt = 0; yt < tilesize; yt++) {
 						for (int32 xt = 0; xt < tilesize; xt++){
 							int32 idi = x * tilesize + xt + (y * tilesize + yt) * MX * tilesize;
-							double r = 0, g = 0, b = 0;
-							for (int32 t = 0; t < T; t++) if (w[t])
-							{
-								int32 argb = tiles[t][xt + yt * tilesize];
-								r += ((argb & 0xff0000) >> 16) * weights[t] * normalization;
-								g += ((argb & 0xff00) >> 8) * weights[t] * normalization;
-								b += (argb & 0xff) * weights[t] * normalization;
+
+							double r{ 0 };
+							double g{ 0 };
+							double b{ 0 };
+
+							for (int32 t = 0; t < T; t++) {
+								if (w[t])
+								{
+									int32 argb = tiles[t][xt + yt * tilesize];
+									r += ((argb & 0xff0000) >> 16) * weights[t] * normalization;
+									g += ((argb & 0x00ff00) >>  8) * weights[t] * normalization;
+									b += ((argb & 0x0000ff) >>  0) * weights[t] * normalization;
+								}
 							}
-							bitmapData[idi] = (int32)0xff000000 | ((int32)r << 16) | ((int32)g << 8) | (int32)b;
+							bitmapData[idi] =
+								(static_cast<int32>(0xff000000)) |
+								(static_cast<int32>(r) << 16) |
+								(static_cast<int32>(g) <<  8) |
+								(static_cast<int32>(b) <<  0);
 						}
 					}
 				}
@@ -273,5 +319,16 @@ public:
 		return BitmapHelper::ToImage(bitmapData, MX * tilesize, MY * tilesize);
 	}
 
+	Image ToTileImage(int32 index) {
+		Array<int32> bitmapData(tilesize * tilesize, 0);
+		const auto& tile = tiles[index];
+		for (int32 y = 0; y < tilesize; y++) {
+			for (int32 x = 0; x < tilesize; x++) {
+				const int32& pixel = tile[x + y * tilesize];
+				bitmapData[x + y *  tilesize] = pixel;
+			}
+		}
+		return BitmapHelper::ToImage(bitmapData, tilesize, tilesize);
+	}
 
 };
