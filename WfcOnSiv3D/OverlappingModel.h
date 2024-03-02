@@ -5,16 +5,17 @@
 class OverlappingModel : public WfcModel {
 public:
 	Array<Array<uint8>> patterns;
-	Array<int32> colors;
+	Array<Color> colors;
 
 	OverlappingModel(const String& name, int32 N, const Size& gridSize, bool periodicInput, bool periodic, int32 symmetry, bool ground, Heuristic heuristic)
 		: WfcModel(gridSize, N, periodic, heuristic) {
 		auto [bitmap, SX, SY] = BitmapHelper::LoadBitmap(name);
-		Array<uint8> sample(bitmap.begin(), bitmap.end());
+
+		Array<uint8> sample(bitmap.size());
 
 		colors.clear();
 		for (int32 i = 0; i < sample.size(); i++) {
-			int32 color = bitmap[i];
+			const Color& color = bitmap[i];
 			int32 k = 0;
 
 			for (; k < colors.size(); k++) {
@@ -130,7 +131,7 @@ public:
 
 	Image ToImage()
 	{
-		Grid<int32> bitmap(gridSize, 0);
+		Grid<Color> bitmap(gridSize);
 
 		if (observed[0] >= 0) {
 			for (int32 y = 0; y < gridSize.y; y++) {
@@ -144,7 +145,12 @@ public:
 		}
 		else {
 			for (int32 i = 0; i < wave.size(); i++) {
-				int32 contributors = 0, r = 0, g = 0, b = 0;
+				int32 contributors = 0;
+
+				int32 r{ 0 };
+				int32 g{ 0 };
+				int32 b{ 0 };
+
 				int32 x = i % gridSize.x;
 				int32 y = i / gridSize.x;
 
@@ -165,15 +171,19 @@ public:
 						for (int32 t = 0; t < T; t++) {
 							if (wave[s][t]) {
 								contributors++;
-								int32 argb = colors[patterns[t][dx + dy * N]];
-								r += (argb & 0xff0000) >> 16;
-								g += (argb & 0xff00) >> 8;
-								b += argb & 0xff;
+								const auto& argb = colors[patterns[t][dx + dy * N]];
+								r += argb.r;
+								g += argb.g;
+								b += argb.b;
 							}
 						}
 					}
 				}
-				bitmap[y][x] = 0xff000000 | ((r / contributors) << 16) | ((g / contributors) << 8) | b / contributors;
+				bitmap[y][x] = Color(
+					static_cast<uint8>(r / contributors),
+					static_cast<uint8>(g / contributors),
+					static_cast<uint8>(b / contributors)
+				);
 			}
 		}
 
