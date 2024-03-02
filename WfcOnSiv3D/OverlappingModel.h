@@ -130,7 +130,7 @@ public:
 
 	Image ToImage()
 	{
-		Array<int32> bitmap(gridSize.x * gridSize.y, 0);
+		Grid<int32> bitmap(gridSize, 0);
 
 		if (observed[0] >= 0) {
 			for (int32 y = 0; y < gridSize.y; y++) {
@@ -138,14 +138,15 @@ public:
 				for (int32 x = 0; x < gridSize.x; x++) {
 					int32 dx = x < gridSize.x - N + 1 ? 0 : N - 1;
 
-					bitmap[x + y * gridSize.x] = colors[patterns[observed[x - dx + (y - dy) * gridSize.x]][dx + dy * N]];
+					bitmap[y][x] = colors[patterns[observed[x - dx + (y - dy) * gridSize.x]][dx + dy * N]];
 				}
 			}
 		}
 		else {
 			for (int32 i = 0; i < wave.size(); i++) {
 				int32 contributors = 0, r = 0, g = 0, b = 0;
-				int32 x = i % gridSize.x, y = i / gridSize.x;
+				int32 x = i % gridSize.x;
+				int32 y = i / gridSize.x;
 
 				for (int32 dy = 0; dy < N; dy++) {
 					for (int32 dx = 0; dx < N; dx++) {
@@ -172,11 +173,11 @@ public:
 						}
 					}
 				}
-				bitmap[i] = 0xff000000 | ((r / contributors) << 16) | ((g / contributors) << 8) | b / contributors;
+				bitmap[y][x] = 0xff000000 | ((r / contributors) << 16) | ((g / contributors) << 8) | b / contributors;
 			}
 		}
 
-		return BitmapHelper::ToImage(bitmap, gridSize.x, gridSize.y);
+		return BitmapHelper::ToImage(bitmap);
 	}
 };
 

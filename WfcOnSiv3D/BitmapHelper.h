@@ -17,14 +17,13 @@ public:
 		return std::make_tuple(arr, image.width(), image.height());
 	}
 
-	static Image ToImage(Array<int32> data, size_t width, size_t height)
-	{
-		Image image{ width, height};
-		for (int32 y = 0; y < image.height(); ++y)
+	static Image ToImage(Grid<int32> data) {
+		Image image{ data.size()};
+		for (auto y : step(data.height()))
 		{
-			for (int32 x = 0; x < image.width(); ++x)
+			for (auto x : step(data.width()))
 			{
-				uint32 pixel = data[y * width + x];
+				uint32 pixel = data[y][x];
 
 				uint8 alpha = pixel & 0xFF;
 				uint8 red = (pixel >> 8) & 0xFF;

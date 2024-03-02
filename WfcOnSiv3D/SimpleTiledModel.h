@@ -257,7 +257,7 @@ public:
 
 	Image ToImage()
 	{
-		Array<int32> bitmapData(gridSize.x * gridSize.y * tilesize * tilesize, 0);
+		Grid<int32> bitmapData(gridSize * tilesize, 0);
 		if (observed[0] >= 0)
 		{
 			for (int32 x = 0; x < gridSize.x; x++) {
@@ -267,7 +267,7 @@ public:
 					for (int32 dy = 0; dy < tilesize; dy++) {
 						for (int32 dx = 0; dx < tilesize; dx++) {
 							const int32& pixel = tile[dx + dy * tilesize];
-							bitmapData[x * tilesize + dx + (y * tilesize + dy) * gridSize.x * tilesize] = pixel;
+							bitmapData[y * tilesize + dy][x * tilesize + dx] = pixel;
 						}
 					}
 				}
@@ -281,7 +281,7 @@ public:
 				if (blackBackground && sumsOfOnes[i] == T) {
 					for (int32 yt = 0; yt < tilesize; yt++) {
 						for (int32 xt = 0; xt < tilesize; xt++) {
-							bitmapData[x * tilesize + xt + (y * tilesize + yt) * gridSize.x * tilesize] = 255 << 24;
+							bitmapData[y * tilesize + yt][x * tilesize + xt] = 255 << 24;
 						}
 					}
 				}
@@ -291,8 +291,6 @@ public:
 					double normalization{ 1.0 / sumsOfWeights[i] };
 					for (int32 yt = 0; yt < tilesize; yt++) {
 						for (int32 xt = 0; xt < tilesize; xt++){
-							int32 idi = x * tilesize + xt + (y * tilesize + yt) * gridSize.x * tilesize;
-
 							double r{ 0 };
 							double g{ 0 };
 							double b{ 0 };
@@ -306,7 +304,7 @@ public:
 									b += ((argb & 0x0000ff) >>  0) * weights[t] * normalization;
 								}
 							}
-							bitmapData[idi] =
+							bitmapData[y * tilesize + yt][x * tilesize + xt] =
 								(static_cast<int32>(0xff000000)) |
 								(static_cast<int32>(r) << 16) |
 								(static_cast<int32>(g) <<  8) |
@@ -316,19 +314,6 @@ public:
 				}
 			}
 		}
-		return BitmapHelper::ToImage(bitmapData, gridSize.x * tilesize, gridSize.y * tilesize);
+		return BitmapHelper::ToImage(bitmapData);
 	}
-
-	Image ToTileImage(int32 index) {
-		Array<int32> bitmapData(tilesize * tilesize, 0);
-		const auto& tile = tiles[index];
-		for (int32 y = 0; y < tilesize; y++) {
-			for (int32 x = 0; x < tilesize; x++) {
-				const int32& pixel = tile[x + y * tilesize];
-				bitmapData[x + y *  tilesize] = pixel;
-			}
-		}
-		return BitmapHelper::ToImage(bitmapData, tilesize, tilesize);
-	}
-
 };
