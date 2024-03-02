@@ -14,8 +14,8 @@ private:
 
 public:
 
-	SimpleTiledModel(String jsonPath, String subsetName, int32 width, int32 height, bool periodic, bool blackBackground, Heuristic heuristic)
-		: WfcModel(width, height, 1, periodic, heuristic) , blackBackground(blackBackground)
+	SimpleTiledModel(String jsonPath, String subsetName, const Size& gridSize, bool periodic, bool blackBackground, Heuristic heuristic)
+		: WfcModel(gridSize, 1, periodic, heuristic) , blackBackground(blackBackground)
 	{
 		const auto jsonFileName = FileSystem::BaseName(jsonPath);
 
@@ -257,17 +257,17 @@ public:
 
 	Image ToImage()
 	{
-		Array<int32> bitmapData(MX * MY * tilesize * tilesize, 0);
+		Array<int32> bitmapData(gridSize.x * gridSize.y * tilesize * tilesize, 0);
 		if (observed[0] >= 0)
 		{
-			for (int32 x = 0; x < MX; x++) {
-				for (int32 y = 0; y < MY; y++)
+			for (int32 x = 0; x < gridSize.x; x++) {
+				for (int32 y = 0; y < gridSize.y; y++)
 				{
-					const auto& tile = tiles[observed[x + y * MX]];
+					const auto& tile = tiles[observed[x + y * gridSize.x]];
 					for (int32 dy = 0; dy < tilesize; dy++) {
 						for (int32 dx = 0; dx < tilesize; dx++) {
 							const int32& pixel = tile[dx + dy * tilesize];
-							bitmapData[x * tilesize + dx + (y * tilesize + dy) * MX * tilesize] = pixel;
+							bitmapData[x * tilesize + dx + (y * tilesize + dy) * gridSize.x * tilesize] = pixel;
 						}
 					}
 				}
@@ -277,11 +277,11 @@ public:
 		{
 			for (int32 i = 0; i < wave.size(); i++)
 			{
-				int32 x = i % MX, y = i / MX;
+				int32 x = i % gridSize.x, y = i / gridSize.x;
 				if (blackBackground && sumsOfOnes[i] == T) {
 					for (int32 yt = 0; yt < tilesize; yt++) {
 						for (int32 xt = 0; xt < tilesize; xt++) {
-							bitmapData[x * tilesize + xt + (y * tilesize + yt) * MX * tilesize] = 255 << 24;
+							bitmapData[x * tilesize + xt + (y * tilesize + yt) * gridSize.x * tilesize] = 255 << 24;
 						}
 					}
 				}
@@ -291,7 +291,7 @@ public:
 					double normalization{ 1.0 / sumsOfWeights[i] };
 					for (int32 yt = 0; yt < tilesize; yt++) {
 						for (int32 xt = 0; xt < tilesize; xt++){
-							int32 idi = x * tilesize + xt + (y * tilesize + yt) * MX * tilesize;
+							int32 idi = x * tilesize + xt + (y * tilesize + yt) * gridSize.x * tilesize;
 
 							double r{ 0 };
 							double g{ 0 };
@@ -316,7 +316,7 @@ public:
 				}
 			}
 		}
-		return BitmapHelper::ToImage(bitmapData, MX * tilesize, MY * tilesize);
+		return BitmapHelper::ToImage(bitmapData, gridSize.x * tilesize, gridSize.y * tilesize);
 	}
 
 	Image ToTileImage(int32 index) {

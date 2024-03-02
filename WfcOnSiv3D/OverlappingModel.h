@@ -7,7 +7,8 @@ public:
 	Array<Array<uint8>> patterns;
 	Array<int32> colors;
 
-	OverlappingModel(const String& name, int32 N, int32 width, int32 height, bool periodicInput, bool periodic, int32 symmetry, bool ground, Heuristic heuristic) : WfcModel(width, height, N, periodic, heuristic) {
+	OverlappingModel(const String& name, int32 N, const Size& gridSize, bool periodicInput, bool periodic, int32 symmetry, bool ground, Heuristic heuristic)
+		: WfcModel(gridSize, N, periodic, heuristic) {
 		auto [bitmap, SX, SY] = BitmapHelper::LoadBitmap(name);
 		Array<uint8> sample(bitmap.begin(), bitmap.end());
 
@@ -129,34 +130,34 @@ public:
 
 	Image ToImage()
 	{
-		Array<int32> bitmap(MX * MY, 0);
+		Array<int32> bitmap(gridSize.x * gridSize.y, 0);
 
 		if (observed[0] >= 0) {
-			for (int32 y = 0; y < MY; y++) {
-				int32 dy = y < MY - N + 1 ? 0 : N - 1;
-				for (int32 x = 0; x < MX; x++) {
-					int32 dx = x < MX - N + 1 ? 0 : N - 1;
+			for (int32 y = 0; y < gridSize.y; y++) {
+				int32 dy = y < gridSize.y - N + 1 ? 0 : N - 1;
+				for (int32 x = 0; x < gridSize.x; x++) {
+					int32 dx = x < gridSize.x - N + 1 ? 0 : N - 1;
 
-					bitmap[x + y * MX] = colors[patterns[observed[x - dx + (y - dy) * MX]][dx + dy * N]];
+					bitmap[x + y * gridSize.x] = colors[patterns[observed[x - dx + (y - dy) * gridSize.x]][dx + dy * N]];
 				}
 			}
 		}
 		else {
 			for (int32 i = 0; i < wave.size(); i++) {
 				int32 contributors = 0, r = 0, g = 0, b = 0;
-				int32 x = i % MX, y = i / MX;
+				int32 x = i % gridSize.x, y = i / gridSize.x;
 
 				for (int32 dy = 0; dy < N; dy++) {
 					for (int32 dx = 0; dx < N; dx++) {
 						int32 sx = x - dx;
-						if (sx < 0) sx += MX;
+						if (sx < 0) sx += gridSize.x;
 
 						int32 sy = y - dy;
-						if (sy < 0) sy += MY;
+						if (sy < 0) sy += gridSize.y;
 
-						int32 s = sx + sy * MX;
+						int32 s = sx + sy * gridSize.x;
 
-						if (!periodic && (sx + N > MX || sy + N > MY || sx < 0 || sy < 0)) {
+						if (!periodic && (sx + N > gridSize.x || sy + N > gridSize.y || sx < 0 || sy < 0)) {
 							continue;
 						}
 
@@ -175,7 +176,7 @@ public:
 			}
 		}
 
-		return BitmapHelper::ToImage(bitmap, MX, MY);
+		return BitmapHelper::ToImage(bitmap, gridSize.x, gridSize.y);
 	}
 };
 

@@ -23,8 +23,7 @@ void Main()
 	OverlappingModel olModel{
 		SRC_IMG_PATH,
 		3, //N
-		olSize.x, //width
-		olSize.y, //height
+		olSize, //gridSize
 		true, //periodicInput
 		true, //periodic
 		8, //symmetry
@@ -39,8 +38,7 @@ void Main()
 	SimpleTiledModel stModel{
 		U"tilesets/Summer.json",
 		U"", //subsetName
-		stGridSize.x, //width
-		stGridSize.y, //height
+		stGridSize, //gridSize
 		true, //periodic
 		true, //blackBackground
 		WfcModel::Heuristic::Entropy
@@ -53,8 +51,7 @@ void Main()
 	SimpleTiledModel st2Model{
 		U"tilesets/Circuit.json",
 		U"Turnless", //subsetName
-		stGridSize.x, //width
-		stGridSize.y, //height
+		st2GridSize, //gridSize
 		true, //periodic
 		false, //blackBackground
 		WfcModel::Heuristic::Entropy
