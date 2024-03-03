@@ -81,11 +81,11 @@ bool WfcModel::Run(int32 seed, int32 limit) {
 			}
 		}
 		else {
-			for (auto i : step(wave.height())) {
-				for (auto d : step(wave.width())) {
+			for (auto y : step(wave.height())) {
+				for (auto x : step(wave.width())) {
 					for (int32 t = 0; t < T; t++) {
-						if (wave[i][d][t]) {
-							observed[i][d] = t;
+						if (wave[y][x][t]) {
+							observed[y][x] = t;
 							break;
 						}
 					}
@@ -134,15 +134,15 @@ bool WfcModel::HasCompleted() {
 
 Point WfcModel::NextUnobservedNode() {
 	if (heuristic == Heuristic::Scanline) {
-		for (auto i : step(wave.height())) {
-			for (auto d : step(wave.width())) {
+		for (auto y : step(wave.height())) {
+			for (auto x : step(wave.width())) {
 
-				if (!periodic && (i % gridSize.x + N > gridSize.x || i / gridSize.x + N > gridSize.y))
+				if (!periodic && (y % gridSize.x + N > gridSize.x || y / gridSize.x + N > gridSize.y))
 					continue;
 
-				if (sumsOfOnes[i][d] > 1) {
-					observedSoFar = i + 1;
-					return { d , i };;
+				if (sumsOfOnes[y][x] > 1) {
+					observedSoFar = y + 1;
+					return { x , y };;
 				}
 			}
 		}
