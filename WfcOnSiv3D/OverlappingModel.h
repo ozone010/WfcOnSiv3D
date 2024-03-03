@@ -1,10 +1,11 @@
 ﻿#pragma once
 #include "WfcModel.h"
 #include "BitmapHelper.h"
+#include "GridHelper.h"
 
 class OverlappingModel : public WfcModel {
 public:
-	Array<Array<uint8>> patterns;
+	Array<Grid<uint8>> patterns;
 	Array<Color> colors;
 
 	OverlappingModel(const String& name, int32 N, const Size& gridSize, bool periodicInput, bool periodic, int32 symmetry, bool ground, Heuristic heuristic)
@@ -34,28 +35,24 @@ public:
 		}
 
 		static auto pattern = [](const std::function<uint8(int32, int32)>& f, int32 N) {
-			Array<uint8> result(N * N);
+			Grid<uint8> result(N , N);
 			for (int32 y = 0; y < N; y++) {
 				for (int32 x = 0; x < N; x++) {
-					result[x + y * N] = f(x, y);
+					result[y][x] = f(x, y);
 				}
 			}
 			return result;
 		};
 
-		static auto rotate = [](const Array<uint8>& p, int32 N) {
-			return pattern([p, N](int32 x, int32 y) { return p[N - 1 - y + x * N]; }, N);
-		};
+		static auto hash = [](const Grid<uint8>& p, int32 C) {
+			int64 result = 0;
+			int64 power = 1;
 
-		static auto reflect = [](const Array<uint8>& p, int32 N) {
-			return pattern([p, N](int32 x, int32 y) { return p[N - 1 - x + y * N]; }, N);
-		};
-
-		static auto hash = [](const Array<uint8>& p, int32 C) {
-			int64 result = 0, power = 1;
-			for (int32 i = 0; i < p.size(); i++) {
-				result += p[p.size() - 1 - i] * power;
-				power *= C;
+			for (auto y : step(p.height())) {
+				for (auto x : step(p.width())) {
+					result += p.asArray()[p.num_elements() - 1 - (x + y * p.width())] * power;
+					power *= C;
+				}
 			}
 			return result;
 		};
@@ -69,22 +66,20 @@ public:
 		int32 ymax = periodicInput ? bitmap.height() : bitmap.height() - N + 1;
 		for (int32 y = 0; y < ymax; y++) {
 			for (int32 x = 0; x < xmax; x++) {
-				Array<Array<uint8>> ps(8);
-
-				const auto& test = pattern([&](int32 dx, int32 dy) -> uint8 {return sample[(y + dy) % bitmap.height()][(x + dx) % bitmap.width()]; }, N);
+				Array<Grid<uint8>> ps(8, Grid<uint8>(N,N));
 
 				ps[0] = pattern([&](int32 dx, int32 dy) -> uint8 {return sample[(y + dy) % bitmap.height()][(x + dx) % bitmap.width()]; }, N);
-				ps[1] = reflect(ps[0], N);
-				ps[2] = rotate(ps[0], N);
-				ps[3] = reflect(ps[2], N);
-				ps[4] = rotate(ps[2], N);
-				ps[5] = reflect(ps[4], N);
-				ps[6] = rotate(ps[4], N);
-				ps[7] = reflect(ps[6], N);
+				ps[1] = GridHelper::mirror(ps[0]);
+				ps[2] = GridHelper::rotate270(ps[0]);
+				ps[3] = GridHelper::mirror(ps[2]);
+				ps[4] = GridHelper::rotate270(ps[2]);
+				ps[5] = GridHelper::mirror(ps[4]);
+				ps[6] = GridHelper::rotate270(ps[4]);
+				ps[7] = GridHelper::mirror(ps[6]);
 
 				for (int32 k = 0; k < symmetry; k++) {
-					auto& p = ps[k];
-					auto h = hash(p, C);
+					const auto& p = ps[k];
+					const auto h = hash(p, C);
 
 					// patternIndicesのキーとしてhが存在するか確認
 					auto it = patternIndices.find(h);
@@ -108,11 +103,12 @@ public:
 		T = weights.size();
 		this->ground = ground;
 
-		static auto agrees = [](const Array<uint8>& p1, const Array<uint8>& p2, int32 dx, int32 dy, int32 N) {
-			int32 xmin = dx < 0 ? 0 : dx, xmax = dx < 0 ? dx + N : N, ymin = dy < 0 ? 0 : dy, ymax = dy < 0 ? dy + N : N;
+		static auto agrees = [](const Grid<uint8>& p1, const Grid<uint8>& p2, const Point& dxy, int32 N) {
+			const int32 xmin = dxy.x < 0 ? 0 : dxy.x, xmax = dxy.x < 0 ? dxy.x + N : N;
+			const int32 ymin = dxy.y < 0 ? 0 : dxy.y, ymax = dxy.y < 0 ? dxy.y + N : N;
 			for (int32 y = ymin; y < ymax; y++) {
 				for (int32 x = xmin; x < xmax; x++) {
-					if (p1[x + N * y] != p2[x - dx + N * (y - dy)]) {
+					if (p1[y][x] != p2[y - dxy.y][x - dxy.x]) {
 						return false;
 					}
 				}
@@ -126,7 +122,7 @@ public:
 			for (int32 t = 0; t < T; t++) {
 				Array<int32> list;
 				for (int32 t2 = 0; t2 < T; t2++)
-					if (agrees(patterns[t], patterns[t2], dx[d], dy[d], N))
+					if (agrees(patterns[t], patterns[t2], dxy[d], N))
 						list.push_back(t2);
 				propagator[d][t] = list;
 			}
@@ -137,63 +133,62 @@ public:
 	{
 		Grid<Color> bitmap(gridSize);
 
-		if (observed[0] >= 0) {
+		if (observed[0][0] >= 0) {
 			for (int32 y = 0; y < gridSize.y; y++) {
 				int32 dy = y < gridSize.y - N + 1 ? 0 : N - 1;
+
 				for (int32 x = 0; x < gridSize.x; x++) {
 					int32 dx = x < gridSize.x - N + 1 ? 0 : N - 1;
-
-					bitmap[y][x] = colors[patterns[observed[x - dx + (y - dy) * gridSize.x]][dx + dy * N]];
+					bitmap[y][x] = colors[patterns[observed[y - dy][x - dx]][dy][dx]];
 				}
 			}
 		}
 		else {
-			for (int32 i = 0; i < wave.size(); i++) {
-				int32 contributors = 0;
+			for (auto i : step(wave.height())) {
+				for (auto d : step(wave.width())) {
 
-				int32 r{ 0 };
-				int32 g{ 0 };
-				int32 b{ 0 };
+					int32 contributors = 0;
 
-				int32 x = i % gridSize.x;
-				int32 y = i / gridSize.x;
+					int32 r{ 0 };
+					int32 g{ 0 };
+					int32 b{ 0 };
 
-				for (int32 dy = 0; dy < N; dy++) {
-					for (int32 dx = 0; dx < N; dx++) {
-						int32 sx = x - dx;
-						if (sx < 0) sx += gridSize.x;
+					for (int32 dy = 0; dy < N; dy++) {
+						for (int32 dx = 0; dx < N; dx++) {
+							auto sxy = Point{ d, i } - Point{ dx ,dy};
 
-						int32 sy = y - dy;
-						if (sy < 0) sy += gridSize.y;
+							if (sxy.x < 0)
+								sxy.x += gridSize.x;
 
-						int32 s = sx + sy * gridSize.x;
+							if (sxy.y < 0)
+								sxy.y += gridSize.y;
 
-						if (!periodic && (sx + N > gridSize.x || sy + N > gridSize.y || sx < 0 || sy < 0)) {
-							continue;
-						}
+							if (!periodic && (sxy.x + N > gridSize.x || sxy.y + N > gridSize.y || sxy.x < 0 || sxy.y < 0)) {
+								continue;
+							}
 
-						for (int32 t = 0; t < T; t++) {
-							if (wave[s][t]) {
-								contributors++;
-								const auto& argb = colors[patterns[t][dx + dy * N]];
-								r += argb.r;
-								g += argb.g;
-								b += argb.b;
+							for (int32 t = 0; t < T; t++) {
+								if (wave[sxy][t]) {
+									contributors++;
+									const auto& argb = colors[patterns[t][dy][dx]];
+									r += argb.r;
+									g += argb.g;
+									b += argb.b;
+								}
 							}
 						}
 					}
+					bitmap[i][d] = Color(
+						static_cast<uint8>(r / contributors),
+						static_cast<uint8>(g / contributors),
+						static_cast<uint8>(b / contributors)
+					);
 				}
-				bitmap[y][x] = Color(
-					static_cast<uint8>(r / contributors),
-					static_cast<uint8>(g / contributors),
-					static_cast<uint8>(b / contributors)
-				);
 			}
 		}
 
 		return BitmapHelper::ToImage(bitmap);
 	}
-
 	Size ImageSize() const
 	{
 		return gridSize;
