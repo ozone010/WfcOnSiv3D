@@ -125,7 +125,7 @@ public:
 				for (int t = 0; t < cardinality; t++)
 				{
 					auto x = U"tilesets/{}/{} {}.png"_fmt(jsonFileName, tilename, t);
-					auto bitmap = BitmapHelper::LoadBitmapAsGrid(U"tilesets/{}/{} {}.png"_fmt(jsonFileName, tilename, t));
+					auto bitmap = BitmapHelper::LoadBitmap(U"tilesets/{}/{} {}.png"_fmt(jsonFileName, tilename, t));
 					tilesize = bitmap.width();
 
 					tiles << bitmap;
@@ -134,7 +134,7 @@ public:
 			}
 			else
 			{
-				auto bitmap = BitmapHelper::LoadBitmapAsGrid(U"tilesets/{}/{}.png"_fmt(jsonFileName, tilename));
+				auto bitmap = BitmapHelper::LoadBitmap(U"tilesets/{}/{}.png"_fmt(jsonFileName, tilename));
 				tilesize = bitmap.width();
 
 				tiles << bitmap;
