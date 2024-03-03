@@ -26,7 +26,8 @@ protected:
 	bool ground = false;
 
 	Array<double> weights;
-	Array<double> weightLogWeights, distribution;
+	Array<double> weightLogWeights;
+	Array<double> distribution;
 
 	Array<int32> sumsOfOnes;
 	double sumOfWeights = 0;
@@ -210,28 +211,6 @@ public:
 		return argmin;
 	}
 private:
-
-	bool next() {
-		int32 node = NextUnobservedNode();
-		if (node >= 0) {
-			Observe(node);
-			bool success = Propagate();
-			if (!success) {
-				return false;
-			}
-		}
-		else {
-			for (int32 i = 0; i < wave.size(); i++) {
-				for (int32 t = 0; t < T; t++) {
-					if (wave[i][t]) {
-						observed[i] = t;
-						break;
-					}
-				}
-			}
-			return true;
-		}
-	}
 
 	void Observe(int32 node) {
 		const Array<bool>& w = wave[node];

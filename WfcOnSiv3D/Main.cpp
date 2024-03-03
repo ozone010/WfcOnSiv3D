@@ -44,8 +44,8 @@ void Main()
 	stModel.Clear();
 
 	SimpleTiledModel st2Model{
-		U"tilesets/Circuit.json",
-		U"Turnless", //subsetName
+		U"tilesets/FloorPlan.json",
+		U"", //subsetName
 		{ 16 ,16 }, //gridSize
 		true, //periodic
 		false, //blackBackground

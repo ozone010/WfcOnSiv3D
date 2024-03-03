@@ -9,24 +9,28 @@ public:
 
 	OverlappingModel(const String& name, int32 N, const Size& gridSize, bool periodicInput, bool periodic, int32 symmetry, bool ground, Heuristic heuristic)
 		: WfcModel(gridSize, N, periodic, heuristic) {
-		auto [bitmap, SX, SY] = BitmapHelper::LoadBitmap(name);
+		auto bitmap = BitmapHelper::LoadBitmap(name);
 
-		Array<uint8> sample(bitmap.size());
+		Grid<uint8> sample(bitmap.size());
 
 		colors.clear();
-		for (int32 i = 0; i < sample.size(); i++) {
-			const Color& color = bitmap[i];
-			int32 k = 0;
 
-			for (; k < colors.size(); k++) {
-				if (colors[k] == color) {
-					break;
+		for (auto i : step(sample.height())) {
+			for (auto d : step(sample.width())) {
+
+				const Color& color = bitmap[i][d];
+				int32 k = 0;
+
+				for (; k < colors.size(); k++) {
+					if (colors[k] == color) {
+						break;
+					}
 				}
+				if (k == colors.size()) {
+					colors << color;
+				}
+				sample[i][d] = static_cast<uint8>(k);
 			}
-			if (k == colors.size()) {
-				colors << color;
-			}
-			sample[i] = static_cast<uint8>(k);
 		}
 
 		static auto pattern = [](const std::function<uint8(int32, int32)>& f, int32 N) {
@@ -61,15 +65,15 @@ public:
 		Array<double> weightList;
 
 		int32 C = colors.size();
-		int32 xmax = periodicInput ? SX : SX - N + 1;
-		int32 ymax = periodicInput ? SY : SY - N + 1;
+		int32 xmax = periodicInput ? bitmap.width() : bitmap.width() - N + 1;
+		int32 ymax = periodicInput ? bitmap.height() : bitmap.height() - N + 1;
 		for (int32 y = 0; y < ymax; y++) {
 			for (int32 x = 0; x < xmax; x++) {
 				Array<Array<uint8>> ps(8);
 
-				const auto& test = pattern([&](int32 dx, int32 dy) -> uint8 {return sample[(x + dx) % SX + (y + dy) % SY * SX]; }, N);
+				const auto& test = pattern([&](int32 dx, int32 dy) -> uint8 {return sample[(y + dy) % bitmap.height()][(x + dx) % bitmap.width()]; }, N);
 
-				ps[0] = pattern([&](int32 dx, int32 dy) -> uint8 {return sample[(x + dx) % SX + (y + dy) % SY * SX]; }, N);
+				ps[0] = pattern([&](int32 dx, int32 dy) -> uint8 {return sample[(y + dy) % bitmap.height()][(x + dx) % bitmap.width()]; }, N);
 				ps[1] = reflect(ps[0], N);
 				ps[2] = rotate(ps[0], N);
 				ps[3] = reflect(ps[2], N);

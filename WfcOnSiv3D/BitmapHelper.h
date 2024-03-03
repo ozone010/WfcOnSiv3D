@@ -2,9 +2,10 @@
 class BitmapHelper
 {
 public:
-	static std::tuple<Array<Color>, int32, int32> LoadBitmap(const FilePath& path) {
+
+	static Grid<Color> LoadBitmap(const FilePath& path) {
 		const Image image(path);
-		return std::make_tuple(image.asArray(), image.width(), image.height());
+		return Grid<Color>(image.width(), image.height(), image.asArray());
 	}
 
 
