@@ -88,7 +88,7 @@ SimpleTiledModel::SimpleTiledModel(const String& jsonPath, const String& subsetN
 		firstOccurrence.emplace(tilename, T);
 
 		Array<Array<int32>> map(cardinality, Array<int32>(8, 0));
-		for (int t = 0; t < cardinality; t++)
+		for (int t = 0; t < cardinality; ++t)
 		{
 			map[t][0] = t;
 			map[t][1] = a(t);
@@ -99,7 +99,7 @@ SimpleTiledModel::SimpleTiledModel(const String& jsonPath, const String& subsetN
 			map[t][6] = b(a(a(t)));
 			map[t][7] = b(a(a(a(t))));
 
-			for (int s = 0; s < 8; s++) {
+			for (int s = 0; s < 8; ++s) {
 				map[t][s] += T;
 			}
 
@@ -108,7 +108,7 @@ SimpleTiledModel::SimpleTiledModel(const String& jsonPath, const String& subsetN
 
 		if (unique)
 		{
-			for (int t = 0; t < cardinality; t++)
+			for (int t = 0; t < cardinality; ++t)
 			{
 				auto x = U"tilesets/{}/{} {}.png"_fmt(jsonFileName, tilename, t);
 				auto bitmap = BitmapHelper::LoadBitmap(U"tilesets/{}/{} {}.png"_fmt(jsonFileName, tilename, t));
@@ -126,7 +126,7 @@ SimpleTiledModel::SimpleTiledModel(const String& jsonPath, const String& subsetN
 			tiles << bitmap;
 			tilenames << U"{} 0"_fmt(tilename);
 
-			for (int32 t = 1; t < cardinality; t++)
+			for (int32 t = 1; t < cardinality; ++t)
 			{
 				if (t <= 3) {
 					tiles << GridHelper::rotate270(tiles[T + t - 1]);
@@ -138,7 +138,7 @@ SimpleTiledModel::SimpleTiledModel(const String& jsonPath, const String& subsetN
 			}
 		}
 
-		for (int t = 0; t < cardinality; t++) {
+		for (int t = 0; t < cardinality; ++t) {
 			weightList << (jTile.hasElement(U"weight") ? jTile[U"weight"].get<double>() : 1.0);
 		}
 	}
@@ -225,12 +225,12 @@ Image SimpleTiledModel::ToImage() const
 	Grid<Color> bitmapData(gridSize * tilesize);
 	if (observed[0][0] >= 0)
 	{
-		for (int32 x = 0; x < gridSize.x; x++) {
-			for (int32 y = 0; y < gridSize.y; y++)
+		for (int32 x = 0; x < gridSize.x; ++x) {
+			for (int32 y = 0; y < gridSize.y; ++y)
 			{
 				const auto& tile = tiles[observed[y][x]];
-				for (int32 dy = 0; dy < tilesize; dy++) {
-					for (int32 dx = 0; dx < tilesize; dx++) {
+				for (int32 dy = 0; dy < tilesize; ++dy) {
+					for (int32 dx = 0; dx < tilesize; ++dx) {
 						const auto& pixel = tile[dy][dx];
 						bitmapData[y * tilesize + dy][x * tilesize + dx] = pixel;
 					}
@@ -243,8 +243,8 @@ Image SimpleTiledModel::ToImage() const
 		for (auto x : step(wave.height())) {
 			for (auto y : step(wave.width())) {
 				if (blackBackground && sumsOfOnes[y][x] == T) {
-					for (int32 yt = 0; yt < tilesize; yt++) {
-						for (int32 xt = 0; xt < tilesize; xt++) {
+					for (int32 yt = 0; yt < tilesize; ++yt) {
+						for (int32 xt = 0; xt < tilesize; ++xt) {
 							bitmapData[y * tilesize + yt][x * tilesize + xt] = Color(0, 0, 0, 255);
 						}
 					}
@@ -253,13 +253,13 @@ Image SimpleTiledModel::ToImage() const
 				{
 					Array<bool> w = wave[y][x];
 					double normalization{ 1.0 / sumsOfWeights[y][x] };
-					for (int32 yt = 0; yt < tilesize; yt++) {
-						for (int32 xt = 0; xt < tilesize; xt++) {
+					for (int32 yt = 0; yt < tilesize; ++yt) {
+						for (int32 xt = 0; xt < tilesize; ++xt) {
 							double r{ 0 };
 							double g{ 0 };
 							double b{ 0 };
 
-							for (int32 t = 0; t < T; t++) {
+							for (int32 t = 0; t < T; ++t) {
 								if (w[t])
 								{
 									const auto& argb = tiles[t][yt][xt];

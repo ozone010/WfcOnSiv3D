@@ -174,12 +174,12 @@ Point WfcModel::NextUnobservedNode() {
 void WfcModel::Observe(const Point& node) {
 	const Array<bool>& w = wave[node.y][node.x];
 
-	for (int32 t = 0; t < T; t++)
+	for (int32 t = 0; t < T; ++t)
 		distribution[t] = w[t] ? weights[t] : 0.0;
 
 	int32 r = RandomHelper::Random(distribution, Random<double>(0, 1.0));
 
-	for (int32 t = 0; t < T; t++) {
+	for (int32 t = 0; t < T; ++t) {
 		if (w[t] != (t == r)) {
 			Ban(node, t);
 		}
@@ -194,7 +194,7 @@ bool WfcModel::Propagate() {
 		auto xy1 = current.first;
 		int32 t1 = current.second;
 
-		for (int32 d = 0; d < 4; d++) {
+		for (int32 d = 0; d < 4; ++d) {
 			auto xy2 = xy1 + dxy[d];
 
 
@@ -233,12 +233,11 @@ void WfcModel::Ban(const Point& p, int32 t) {
 	wave[p][t] = false;
 
 	Array<int32>& comp = compatible[p][t];
-	for (int32 d = 0; d < 4; d++) {
+	for (int32 d = 0; d < 4; ++d) {
 		comp[d] = 0;
 	}
 
-	stack[stacksize] = std::make_pair(p, t);
-	stacksize++;
+	stack[stacksize++] = std::make_pair(p, t);
 
 	sumsOfOnes[p] -= 1;
 	sumsOfWeights[p] -= weights[t];
