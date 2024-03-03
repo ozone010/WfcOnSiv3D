@@ -9,10 +9,10 @@ OverlappingModel::OverlappingModel(const String& name, int32 N, const Size& grid
 
 	colors.clear();
 
-	for (auto i : step(sample.height())) {
-		for (auto d : step(sample.width())) {
+	for (auto y : step(sample.height())) {
+		for (auto x : step(sample.width())) {
 
-			const Color& color = bitmap[i][d];
+			const Color& color = bitmap[y][x];
 			int32 k = 0;
 
 			for (; k < colors.size(); k++) {
@@ -23,7 +23,7 @@ OverlappingModel::OverlappingModel(const String& name, int32 N, const Size& grid
 			if (k == colors.size()) {
 				colors << color;
 			}
-			sample[i][d] = static_cast<uint8>(k);
+			sample[y][x] = static_cast<uint8>(k);
 		}
 	}
 
@@ -137,8 +137,8 @@ Image OverlappingModel::ToImage() const
 		}
 	}
 	else {
-		for (auto i : step(wave.height())) {
-			for (auto d : step(wave.width())) {
+		for (auto y : step(wave.height())) {
+			for (auto x : step(wave.width())) {
 
 				int32 contributors = 0;
 
@@ -148,7 +148,7 @@ Image OverlappingModel::ToImage() const
 
 				for (int32 dy = 0; dy < N; dy++) {
 					for (int32 dx = 0; dx < N; dx++) {
-						auto sxy = Point{ d, i } - Point{ dx ,dy };
+						auto sxy = Point{ x, y } - Point{ dx ,dy };
 
 						if (sxy.x < 0)
 							sxy.x += gridSize.x;
@@ -171,7 +171,7 @@ Image OverlappingModel::ToImage() const
 						}
 					}
 				}
-				bitmap[i][d] = Color(
+				bitmap[y][x] = Color(
 					static_cast<uint8>(r / contributors),
 					static_cast<uint8>(g / contributors),
 					static_cast<uint8>(b / contributors)
