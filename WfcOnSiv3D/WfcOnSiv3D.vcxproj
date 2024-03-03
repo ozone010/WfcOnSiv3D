@@ -117,7 +117,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="BitmapHelper.cpp" />
-    <ClCompile Include="GridHelper.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="RandomHelper.cpp" />
     <ClCompile Include="SimpleTiledModel.cpp" />
@@ -229,12 +228,12 @@
     <None Include="App\engine\soundfont\GMGSx.sf2.zstdcmp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BitmapHelper.h" />
+    <ClInclude Include="BitmapHelper.hpp" />
     <ClInclude Include="GridHelper.h" />
-    <ClInclude Include="RandomHelper.h" />
-    <ClInclude Include="SimpleTiledModel.h" />
-    <ClInclude Include="WfcModel.h" />
-    <ClInclude Include="OverlappingModel.h" />
+    <ClInclude Include="RandomHelper.hpp" />
+    <ClInclude Include="SimpleTiledModel.hpp" />
+    <ClInclude Include="WfcModel.hpp" />
+    <ClInclude Include="OverlappingModel.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

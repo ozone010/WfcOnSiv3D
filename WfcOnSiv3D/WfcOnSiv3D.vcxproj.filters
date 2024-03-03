@@ -87,9 +87,6 @@
     <ClCompile Include="BitmapHelper.cpp">
       <Filter>Source Files\Helper</Filter>
     </ClCompile>
-    <ClCompile Include="GridHelper.cpp">
-      <Filter>Source Files\Helper</Filter>
-    </ClCompile>
     <ClCompile Include="RandomHelper.cpp">
       <Filter>Source Files\Helper</Filter>
     </ClCompile>
@@ -380,22 +377,22 @@
     <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="WfcModel.h">
+    <ClInclude Include="WfcModel.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="OverlappingModel.h">
+    <ClInclude Include="OverlappingModel.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SimpleTiledModel.h">
+    <ClInclude Include="SimpleTiledModel.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="BitmapHelper.h">
+    <ClInclude Include="BitmapHelper.hpp">
       <Filter>Header Files\Helper</Filter>
     </ClInclude>
     <ClInclude Include="GridHelper.h">
       <Filter>Header Files\Helper</Filter>
     </ClInclude>
-    <ClInclude Include="RandomHelper.h">
+    <ClInclude Include="RandomHelper.hpp">
       <Filter>Header Files\Helper</Filter>
     </ClInclude>
   </ItemGroup>
