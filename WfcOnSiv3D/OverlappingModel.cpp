@@ -160,7 +160,7 @@ Image OverlappingModel::ToImage() const
 							continue;
 						}
 
-						for (int32 t = 0; t < T; t++) {
+						for (int32 t = 0; t < T; ++t) {
 							if (wave[sxy][t]) {
 								contributors++;
 								const auto& argb = colors[patterns[t][dy][dx]];
