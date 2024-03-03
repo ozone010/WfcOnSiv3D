@@ -1,13 +1,14 @@
 ﻿#pragma once
 #include "WfcModel.h"
 #include "BitmapHelper.h"
+#include "GridHelper.h"
 
 #pragma once
 class SimpleTiledModel : public WfcModel
 {
 
 private:
-	Array<Array<Color>> tiles;
+	Array<Grid<Color>> tiles;
 	Array<String> tilenames;
 	int32 tilesize = 0;
 	bool blackBackground;
@@ -38,27 +39,6 @@ public:
 				subset << tile[U"name"].getString();
 			}
 		}
-
-		static auto tile = [](const std::function<Color(int32, int32)>& f, int32 size) {
-			Array<Color> result(size * size);
-			for (int32 y = 0; y < size; y++) {
-				for (int32 x = 0; x < size; x++) {
-					result[x + y * size] = f(x, y);
-				}
-			}
-			return result;
-		};
-
-		static auto rotate = [](const Array<Color>& array, int32 size) {
-			return tile([&](int32 x, int32 y) { return array[size - 1 - y + x * size]; }, size);
-		};
-
-		static auto reflect = [](const Array<Color>& array, int32 size) {
-			return tile([&](int32 x, int32 y) { return array[size - 1 - x + y * size]; }, size);
-		};
-
-
-
 
 		Array<double> weightList;
 		Array<Array<int32>> action;
@@ -145,8 +125,8 @@ public:
 				for (int t = 0; t < cardinality; t++)
 				{
 					auto x = U"tilesets/{}/{} {}.png"_fmt(jsonFileName, tilename, t);
-					auto [bitmap, _w, _h] = BitmapHelper::LoadBitmap(U"tilesets/{}/{} {}.png"_fmt(jsonFileName, tilename, t));
-					tilesize = _w;
+					auto bitmap = BitmapHelper::LoadBitmapAsGrid(U"tilesets/{}/{} {}.png"_fmt(jsonFileName, tilename, t));
+					tilesize = bitmap.width();
 
 					tiles << bitmap;
 					tilenames << U"{} {}"_fmt(tilename,t);
@@ -154,8 +134,8 @@ public:
 			}
 			else
 			{
-				auto [bitmap, _w, _h] = BitmapHelper::LoadBitmap(U"tilesets/{}/{}.png"_fmt(jsonFileName, tilename));
-				tilesize = _w;
+				auto bitmap = BitmapHelper::LoadBitmapAsGrid(U"tilesets/{}/{}.png"_fmt(jsonFileName, tilename));
+				tilesize = bitmap.width();
 
 				tiles << bitmap;
 				tilenames << U"{} 0"_fmt(tilename);
@@ -163,11 +143,10 @@ public:
 				for (int32 t = 1; t < cardinality; t++)
 				{
 					if (t <= 3) {
-						auto test = tiles[T + t - 1];
-						tiles << (rotate(tiles[T + t - 1], tilesize));
+						tiles << GridHelper::rotate270(tiles[T + t - 1]);
 					}
 					if (t >= 4) {
-						tiles << (reflect(tiles[T + t - 4], tilesize));
+						tiles << GridHelper::mirror(tiles[T + t - 4]);
 					}
 					tilenames << U"{} {}"_fmt(tilename, t);
 				}
@@ -266,7 +245,7 @@ public:
 					const auto& tile = tiles[observed[x + y * gridSize.x]];
 					for (int32 dy = 0; dy < tilesize; dy++) {
 						for (int32 dx = 0; dx < tilesize; dx++) {
-							const auto& pixel = tile[dx + dy * tilesize];
+							const auto& pixel = tile[dy][dx];
 							bitmapData[y * tilesize + dy][x * tilesize + dx] = pixel;
 						}
 					}
@@ -298,7 +277,7 @@ public:
 							for (int32 t = 0; t < T; t++) {
 								if (w[t])
 								{
-									const auto& argb = tiles[t][xt + yt * tilesize];
+									const auto& argb = tiles[t][yt][xt];
 									r += argb.r * weights[t] * normalization;
 									g += argb.g * weights[t] * normalization;
 									b += argb.b * weights[t] * normalization;

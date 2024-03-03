@@ -117,6 +117,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="BitmapHelper.cpp" />
+    <ClCompile Include="GridHelper.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="RandomHelper.cpp" />
     <ClCompile Include="SimpleTiledModel.cpp" />
@@ -229,6 +230,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BitmapHelper.h" />
+    <ClInclude Include="GridHelper.h" />
     <ClInclude Include="RandomHelper.h" />
     <ClInclude Include="SimpleTiledModel.h" />
     <ClInclude Include="WfcModel.h" />

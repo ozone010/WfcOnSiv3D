@@ -7,6 +7,11 @@ public:
 		return std::make_tuple(image.asArray(), image.width(), image.height());
 	}
 
+	static Grid<Color> LoadBitmapAsGrid(const FilePath& path) {
+		const Image image(path);
+		return Grid<Color>(image.width(), image.height(), image.asArray());
+	}
+
 
 	static Image ToImage(Grid<Color> data) {
 		Image image{ data.size() };
