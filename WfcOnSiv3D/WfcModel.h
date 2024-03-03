@@ -51,13 +51,6 @@ public:
 	void Init() {
 		wave.resize(gridSize.x * gridSize.y, Array<bool>(T));
 		compatible.resize(wave.size(), Array<Array<int32>>(T, Array<int32>(4)));
-
-		for (int32 i = 0; i < wave.size(); i++) {
-			for (int32 t = 0; t < T; t++) {
-				compatible[i][t].resize(4);
-			}
-		}
-
 		distribution.resize(T);
 		observed.resize(gridSize.x * gridSize.y);
 
