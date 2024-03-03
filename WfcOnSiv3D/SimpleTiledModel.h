@@ -204,8 +204,8 @@ public:
 
 
 		Array<Array<Array<int32>>> sparsePropagator(4, Array<Array<int32>>(T));
-		for (int d = 0; d < 4; ++d) {
-			for (int t = 0; t < T; ++t) {
+		for (int32 d = 0; d < 4; ++d) {
+			for (int32 t = 0; t < T; ++t) {
 				sparsePropagator[d][t] = Array<int>();
 			}
 		}
@@ -237,12 +237,12 @@ public:
 	Image ToImage() const
 	{
 		Grid<Color> bitmapData(gridSize * tilesize);
-		if (observed[0] >= 0)
+		if (observed[0][0] >= 0)
 		{
 			for (int32 x = 0; x < gridSize.x; x++) {
 				for (int32 y = 0; y < gridSize.y; y++)
 				{
-					const auto& tile = tiles[observed[x + y * gridSize.x]];
+					const auto& tile = tiles[observed[y][x]];
 					for (int32 dy = 0; dy < tilesize; dy++) {
 						for (int32 dx = 0; dx < tilesize; dx++) {
 							const auto& pixel = tile[dy][dx];
@@ -254,41 +254,41 @@ public:
 		}
 		else
 		{
-			for (int32 i = 0; i < wave.size(); i++)
-			{
-				int32 x = i % gridSize.x, y = i / gridSize.x;
-				if (blackBackground && sumsOfOnes[i] == T) {
-					for (int32 yt = 0; yt < tilesize; yt++) {
-						for (int32 xt = 0; xt < tilesize; xt++) {
-							bitmapData[y * tilesize + yt][x * tilesize + xt] = Color(0,0,0,255);
+			for (auto x : step(wave.height())){
+				for (auto y : step(wave.width())){
+					if (blackBackground && sumsOfOnes[y][x] == T) {
+						for (int32 yt = 0; yt < tilesize; yt++) {
+							for (int32 xt = 0; xt < tilesize; xt++) {
+								bitmapData[y * tilesize + yt][x * tilesize + xt] = Color(0, 0, 0, 255);
+							}
 						}
 					}
-				}
-				else
-				{
-					Array<bool> w = wave[i];
-					double normalization{ 1.0 / sumsOfWeights[i] };
-					for (int32 yt = 0; yt < tilesize; yt++) {
-						for (int32 xt = 0; xt < tilesize; xt++){
-							double r{ 0 };
-							double g{ 0 };
-							double b{ 0 };
+					else
+					{
+						Array<bool> w = wave[y][x];
+						double normalization{ 1.0 / sumsOfWeights[y][x] };
+						for (int32 yt = 0; yt < tilesize; yt++) {
+							for (int32 xt = 0; xt < tilesize; xt++) {
+								double r{ 0 };
+								double g{ 0 };
+								double b{ 0 };
 
-							for (int32 t = 0; t < T; t++) {
-								if (w[t])
-								{
-									const auto& argb = tiles[t][yt][xt];
-									r += argb.r * weights[t] * normalization;
-									g += argb.g * weights[t] * normalization;
-									b += argb.b * weights[t] * normalization;
+								for (int32 t = 0; t < T; t++) {
+									if (w[t])
+									{
+										const auto& argb = tiles[t][yt][xt];
+										r += argb.r * weights[t] * normalization;
+										g += argb.g * weights[t] * normalization;
+										b += argb.b * weights[t] * normalization;
+									}
 								}
+								bitmapData[y * tilesize + yt][x * tilesize + xt] =
+									Color(
+										static_cast<uint8>(r),
+										static_cast<uint8>(g),
+										static_cast<uint8>(b)
+									);
 							}
-							bitmapData[y * tilesize + yt][x * tilesize + xt] =
-								Color(
-									static_cast<uint8>(r),
-									static_cast<uint8>(g),
-									static_cast<uint8>(b)
-								);
 						}
 					}
 				}

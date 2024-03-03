@@ -8,13 +8,13 @@ public:
 
 
 protected:
-	Array<Array<bool>> wave;
+	Grid<Array<bool>> wave;
 
 	Array<Array<Array<int32>>> propagator;
-	Array<Array<Array<int32>>> compatible;
-	Array<int32> observed;
+	Grid<Array<Array<int32>>> compatible;
+	Grid<int32> observed;
 
-	Array<std::pair<int32, int32>> stack;
+	Array<std::pair<Point, int32>> stack;
 	int32 stacksize = 0;
 	int32 observedSoFar = 0;
 
@@ -29,18 +29,17 @@ protected:
 	Array<double> weightLogWeights;
 	Array<double> distribution;
 
-	Array<int32> sumsOfOnes;
+	Grid<int32> sumsOfOnes;
 	double sumOfWeights = 0;
 	double sumOfWeightLogWeights = 0;
 	double startingEntropy = 0;
-	Array<double> sumsOfWeights;
-	Array<double> sumsOfWeightLogWeights;
-	Array<double> entropies;
+	Grid<double> sumsOfWeights;
+	Grid<double> sumsOfWeightLogWeights;
+	Grid<double> entropies;
 
 	Heuristic heuristic;
 
-	const Array<int32> dx{ -1, 0, 1, 0 };
-	const Array<int32> dy{ 0, 1, 0, -1 };
+	const Array<Point> dxy{ { -1, 0}, { 0, 1} , {1, 0},{ 0,-1} };
 	const Array<int32> opposite{ 2, 3, 0, 1 };
 
 
@@ -49,10 +48,10 @@ protected:
 
 public:
 	void Init() {
-		wave.resize(gridSize.x * gridSize.y, Array<bool>(T));
+		wave.resize(gridSize, Array<bool>(T));
 		compatible.resize(wave.size(), Array<Array<int32>>(T, Array<int32>(4)));
 		distribution.resize(T);
-		observed.resize(gridSize.x * gridSize.y);
+		observed.resize(gridSize);
 
 		weightLogWeights.resize(T);
 		sumOfWeights = 0;
@@ -64,40 +63,43 @@ public:
 			sumOfWeightLogWeights += weightLogWeights[t];
 		}
 
-		startingEntropy = log(sumOfWeights) - sumOfWeightLogWeights / sumOfWeights;
+		startingEntropy = Math::Log(sumOfWeights) - sumOfWeightLogWeights / sumOfWeights;
 
-		sumsOfOnes.resize(gridSize.x * gridSize.y);
-		sumsOfWeights.resize(gridSize.x * gridSize.y);
-		sumsOfWeightLogWeights.resize(gridSize.x * gridSize.y);
-		entropies.resize(gridSize.x * gridSize.y);
+		sumsOfOnes.resize(gridSize);
+		sumsOfWeights.resize(gridSize);
+		sumsOfWeightLogWeights.resize(gridSize);
+		entropies.resize(gridSize);
 
-		stack.resize(wave.size() * T, std::make_pair<int32, int32>(0, 0));
+		stack.resize(wave.num_elements() * T, std::make_pair<Point, int32>({0,0}, 0));
 		stacksize = 0;
 	}
 
 	void Clear() {
-		for (int32 i = 0; i < wave.size(); i++) {
-			for (int32 t = 0; t < T; t++) {
-				wave[i][t] = true;
-				for (int32 d = 0; d < 4; d++)
-					compatible[i][t][d] = propagator[opposite[d]][t].size();
-			}
+		for (auto i : step(wave.height())){
+			for (auto x : step(wave.width())){
+				for (int32 t = 0; t < T; t++) {
+					wave[i][x][t] = true;
+					for (int32 d = 0; d < 4; d++) {
+						compatible[i][x][t][d] = propagator[opposite[d]][t].size();
+					}
+				}
 
-			sumsOfOnes[i] = weights.size();
-			sumsOfWeights[i] = sumOfWeights;
-			sumsOfWeightLogWeights[i] = sumOfWeightLogWeights;
-			entropies[i] = startingEntropy;
-			observed[i] = -1;
+				sumsOfOnes[i][x] = weights.size();
+				sumsOfWeights[i][x] = sumOfWeights;
+				sumsOfWeightLogWeights[i][x] = sumOfWeightLogWeights;
+				entropies[i][x] = startingEntropy;
+				observed[i][x] = -1;
+			}
 		}
 		observedSoFar = 0;
 
 		if (ground) {
 			for (int32 x = 0; x < gridSize.x; x++) {
 				for (int32 t = 0; t < T - 1; t++) {
-					Ban(x + (gridSize.y - 1) * gridSize.x, t);
+					Ban({ x , gridSize.y - 1 }, t);
 				}
 				for (int32 y = 0; y < gridSize.y - 1; y++) {
-					Ban(x + y * gridSize.x, T - 1);
+					Ban({ x , y }, T - 1);
 				}
 			}
 			Propagate();
@@ -113,8 +115,8 @@ public:
 		Reseed(seed);
 
 		for (int32 l = 0; l < limit || limit < 0; l++) {
-			int32 node = NextUnobservedNode();
-			if (node >= 0) {
+			auto node = NextUnobservedNode();
+			if (node.x >= 0) {
 				Observe(node);
 				bool success = Propagate();
 				if (!success){
@@ -122,11 +124,13 @@ public:
 				}
 			}
 			else {
-				for (int32 i = 0; i < wave.size(); i++) {
-					for (int32 t = 0; t < T; t++) {
-						if (wave[i][t]) {
-							observed[i] = t;
-							break;
+				for (auto i : step(wave.height())) {
+					for (auto d : step(wave.width())) {
+						for (int32 t = 0; t < T; t++) {
+							if (wave[i][d][t]) {
+								observed[i][d] = t;
+								break;
+							}
 						}
 					}
 				}
@@ -144,8 +148,8 @@ public:
 			Clear();
 		}
 
-		int32 node = NextUnobservedNode();
-		if (node >= 0) {
+		auto node = NextUnobservedNode();
+		if (node.x >= 0) {
 			Observe(node);
 			bool success = Propagate();
 			if (!success) {
@@ -153,11 +157,13 @@ public:
 			}
 		}
 		else {
-			for (int32 i = 0; i < wave.size(); i++) {
-				for (int32 t = 0; t < T; t++) {
-					if (wave[i][t]) {
-						observed[i] = t;
-						break;
+			for (auto y : step(wave.height())) {
+				for (auto x : step(wave.width())) {
+					for (int32 t = 0; t < T; t++) {
+						if (wave[y][x][t] == true) {
+							observed[y][x] = t;
+							break;
+						}
 					}
 				}
 			}
@@ -166,38 +172,42 @@ public:
 	}
 
 	bool HasCompleted() {
-		return not wave.isEmpty() && sumsOfOnes.sum() == sumsOfOnes.size();
+		return not wave.isEmpty() && sumsOfOnes.asArray().sum() == sumsOfOnes.num_elements();
 	}
 
-	int32 NextUnobservedNode() {
+	Point NextUnobservedNode() {
 		if (heuristic == Heuristic::Scanline) {
-			for (int32 i = observedSoFar; i < wave.size(); i++) {
+			for (auto i : step(wave.height())) {
+				for (auto d : step(wave.width())) {
 
-				if (!periodic && (i % gridSize.x + N > gridSize.x || i / gridSize.x + N > gridSize.y))
-					continue;
+					if (!periodic && (i % gridSize.x + N > gridSize.x || i / gridSize.x + N > gridSize.y))
+						continue;
 
-				if (sumsOfOnes[i] > 1) {
-					observedSoFar = i + 1;
-					return i;
+					if (sumsOfOnes[i][d] > 1) {
+						observedSoFar = i + 1;
+						return { d , i };;
+					}
 				}
 			}
-			return -1;
+			return { -1, -1 };
 		}
 
 		double min = 1E+4;
-		int32 argmin = -1;
-		for (int32 i = 0; i < wave.size(); i++) {
-			if (!periodic && (i % gridSize.x + N > gridSize.x || i / gridSize.x + N > gridSize.y))
-				continue;
+		Point argmin{ -1, -1 };
+		for (auto y : step(wave.height())) {
+			for (auto x : step(wave.width())) {
+				if (!periodic && (x % gridSize.x + N > gridSize.x || x / gridSize.x + N > gridSize.y))
+					continue;
 
-			int32 remainingValues = sumsOfOnes[i];
-			double entropy = heuristic == Heuristic::Entropy ? entropies[i] : remainingValues;
+				int32 remainingValues = sumsOfOnes[y][x];
+				double entropy = heuristic == Heuristic::Entropy ? entropies[y][x] : remainingValues;
 
-			if (remainingValues > 1 && entropy <= min) {
-				double noise = 1E-6 * Random<double>(0, 1.0);
-				if (entropy + noise < min) {
-					min = entropy + noise;
-					argmin = i;
+				if (remainingValues > 1 && entropy <= min) {
+					double noise = 1E-6 * Random<double>(0, 1.0);
+					if (entropy + noise < min) {
+						min = entropy + noise;
+						argmin = {x , y};
+					}
 				}
 			}
 		}
@@ -205,8 +215,8 @@ public:
 	}
 private:
 
-	void Observe(int32 node) {
-		const Array<bool>& w = wave[node];
+	void Observe(const Point& node) {
+		const Array<bool>& w = wave[node.y][node.x];
 
 		for (int32 t = 0; t < T; t++)
 			distribution[t] = w[t] ? weights[t] : 0.0;
@@ -222,61 +232,64 @@ private:
 
 	bool Propagate() {
 		while (stacksize > 0) {
-			std::pair<int32, int32> current = stack[stacksize - 1];
+			auto current = stack[stacksize - 1];
 			stacksize--;
 
-			int32 x1 = current.first % gridSize.x;
-			int32 y1 = current.first / gridSize.x;
+			auto xy1 = current.first;
 			int32 t1 = current.second;
 
 			for (int32 d = 0; d < 4; d++) {
-				int32 x2 = x1 + dx[d];
-				int32 y2 = y1 + dy[d];
+				auto xy2 = xy1 + dxy[d];
 
-				if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > gridSize.x || y2 + N > gridSize.y))
+
+				if (!periodic && (xy2.x < 0 || xy2.y < 0 || xy2.x + N > gridSize.x || xy2.y + N > gridSize.y))
 					continue;
 
-				if (x2 < 0)
-					x2 += gridSize.x;
-				else if (x2 >= gridSize.x)
-					x2 -= gridSize.x;
+				if (xy2.x < 0)
+					xy2.x += gridSize.x;
+				else if (xy2.x >= gridSize.x)
+					xy2.x -= gridSize.x;
 
-				if (y2 < 0)
-					y2 += gridSize.y;
-				else if (y2 >= gridSize.y)
-					y2 -= gridSize.y;
+				if (xy2.y < 0)
+					xy2.y += gridSize.y;
+				else if (xy2.y >= gridSize.y)
+					xy2.y -= gridSize.y;
 
-				int32 i2 = x2 + y2 * gridSize.x;
 				Array<int32>& p = propagator[d][t1];
-				Array<Array<int32>>& compat = compatible[i2];
+				Array<Array<int32>>& compat = compatible[xy2];
 
 				for (int32 l = 0; l < p.size(); l++) {
 					int32 t2 = p[l];
 					Array<int32>& comp = compat[t2];
 
 					comp[d]--;
-					if (comp[d] == 0) Ban(i2, t2);
+					if (comp[d] == 0) {
+						Ban(xy2, t2);
+					}
 				}
 			}
 		}
 
-		return sumsOfOnes[0] > 0;
+		return sumsOfOnes[0][0] > 0;
 	}
 
-	void Ban(int32 i, int32 t) {
-		wave[i][t] = false;
+	void Ban(const Point& p, int32 t) {
+		wave[p][t] = false;
 
-		Array<int32>& comp = compatible[i][t];
-		for (int32 d = 0; d < 4; d++) comp[d] = 0;
-		stack[stacksize] = std::make_pair(i, t);
+		Array<int32>& comp = compatible[p][t];
+		for (int32 d = 0; d < 4; d++) {
+			comp[d] = 0;
+		}
+
+		stack[stacksize] = std::make_pair(p, t);
 		stacksize++;
 
-		sumsOfOnes[i] -= 1;
-		sumsOfWeights[i] -= weights[t];
-		sumsOfWeightLogWeights[i] -= weightLogWeights[t];
+		sumsOfOnes[p] -= 1;
+		sumsOfWeights[p] -= weights[t];
+		sumsOfWeightLogWeights[p] -= weightLogWeights[t];
 
-		double sum = sumsOfWeights[i];
-		entropies[i] = Math::Log(sum) - sumsOfWeightLogWeights[i] / sum;
+		double sum = sumsOfWeights[p];
+		entropies[p] = Math::Log(sum) - sumsOfWeightLogWeights[p] / sum;
 	}
 
 };
