@@ -1,51 +1,47 @@
 ﻿#include "stdafx.h"
 #include "WfcModel.hpp"
 
-WfcModel::WfcModel(const Size& gridSize, int32 N, bool periodic, Heuristic heuristic): gridSize(gridSize), N(N), periodic(periodic), heuristic(heuristic) {}
+WfcModel::WfcModel(const Size& gridSize, int32 N, bool periodic, Heuristic heuristic):
+	gridSize(gridSize), N(N), periodic(periodic), heuristic(heuristic),
+	observed(gridSize), sumsOfOnes(gridSize), sumsOfWeights(gridSize), sumsOfWeightLogWeights(gridSize), entropies(gridSize) {}
 
 void WfcModel::Init()
 {
 	wave.resize(gridSize, Array<bool>(T));
 	compatible.resize(wave.size(), Array<Array<int32>>(T, Array<int32>(4)));
 	distribution.resize(T);
-	observed.resize(gridSize);
 
 	weightLogWeights.resize(T);
 	sumOfWeights = 0;
 	sumOfWeightLogWeights = 0;
 
 	for (int32 t = 0; t < T; t++) {
-		weightLogWeights[t] = weights[t] * log(weights[t]);
+		weightLogWeights[t] = weights[t] * Math::Log(weights[t]);
 		sumOfWeights += weights[t];
 		sumOfWeightLogWeights += weightLogWeights[t];
 	}
 
 	startingEntropy = Math::Log(sumOfWeights) - sumOfWeightLogWeights / sumOfWeights;
 
-	sumsOfOnes.resize(gridSize);
-	sumsOfWeights.resize(gridSize);
-	sumsOfWeightLogWeights.resize(gridSize);
-	entropies.resize(gridSize);
-
 	stack.resize(wave.num_elements() * T, std::make_pair<Point, int32>({ 0,0 }, 0));
 	stacksize = 0;
 }
 
 void WfcModel::Clear() {
-	for (auto i : step(wave.height())) {
+	for (auto y : step(wave.height())) {
 		for (auto x : step(wave.width())) {
 			for (int32 t = 0; t < T; t++) {
-				wave[i][x][t] = true;
+				wave[y][x][t] = true;
 				for (int32 d = 0; d < 4; d++) {
-					compatible[i][x][t][d] = propagator[opposite[d]][t].size();
+					compatible[y][x][t][d] = propagator[opposite[d]][t].size();
 				}
 			}
 
-			sumsOfOnes[i][x] = weights.size();
-			sumsOfWeights[i][x] = sumOfWeights;
-			sumsOfWeightLogWeights[i][x] = sumOfWeightLogWeights;
-			entropies[i][x] = startingEntropy;
-			observed[i][x] = -1;
+			sumsOfOnes[y][x] = weights.size();
+			sumsOfWeights[y][x] = sumOfWeights;
+			sumsOfWeightLogWeights[y][x] = sumOfWeightLogWeights;
+			entropies[y][x] = startingEntropy;
+			observed[y][x] = -1;
 		}
 	}
 	observedSoFar = 0;
