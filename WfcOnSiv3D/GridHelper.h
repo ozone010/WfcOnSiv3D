@@ -4,7 +4,7 @@ class GridHelper
 public:
 
 	template <typename T>
-	static Grid<T> rotate270(const Grid<T>& src) {
+	static Grid<T> rotated270(const Grid<T>& src) {
 		Grid<T> rotated{src.height() , src.width() };
 		for (size_t i = 0; i < rotated.height(); ++i) {
 			for (size_t j = 0; j < rotated.width(); ++j) {
@@ -15,7 +15,7 @@ public:
 	}
 
 	template <typename T>
-	static Grid<T> mirror(const Grid<T>& src) {
+	static Grid<T> mirrored(const Grid<T>& src) {
 		Grid<T> reflected(src.width(), src.height());
 		for (size_t i = 0; i < src.height(); ++i) {
 			for (size_t j = 0; j < src.width(); ++j) {

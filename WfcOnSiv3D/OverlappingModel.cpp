@@ -62,13 +62,13 @@ OverlappingModel::OverlappingModel(const String& name, int32 N, const Size& grid
 			Array<Grid<uint8>> ps(8, Grid<uint8>(N, N));
 
 			ps[0] = pattern([&](int32 dx, int32 dy) -> uint8 {return sample[(y + dy) % bitmap.height()][(x + dx) % bitmap.width()]; }, N);
-			ps[1] = GridHelper::mirror(ps[0]);
-			ps[2] = GridHelper::rotate270(ps[0]);
-			ps[3] = GridHelper::mirror(ps[2]);
-			ps[4] = GridHelper::rotate270(ps[2]);
-			ps[5] = GridHelper::mirror(ps[4]);
-			ps[6] = GridHelper::rotate270(ps[4]);
-			ps[7] = GridHelper::mirror(ps[6]);
+			ps[1] = GridHelper::mirrored(ps[0]);
+			ps[2] = GridHelper::rotated270(ps[0]);
+			ps[3] = GridHelper::mirrored(ps[2]);
+			ps[4] = GridHelper::rotated270(ps[2]);
+			ps[5] = GridHelper::mirrored(ps[4]);
+			ps[6] = GridHelper::rotated270(ps[4]);
+			ps[7] = GridHelper::mirrored(ps[6]);
 
 			for (int32 k = 0; k < symmetry; k++) {
 				const auto& p = ps[k];

@@ -129,10 +129,10 @@ SimpleTiledModel::SimpleTiledModel(const String& jsonPath, const String& subsetN
 			for (int32 t = 1; t < cardinality; ++t)
 			{
 				if (t <= 3) {
-					tiles << GridHelper::rotate270(tiles[T + t - 1]);
+					tiles << GridHelper::rotated270(tiles[T + t - 1]);
 				}
 				if (t >= 4) {
-					tiles << GridHelper::mirror(tiles[T + t - 4]);
+					tiles << GridHelper::mirrored(tiles[T + t - 4]);
 				}
 				tilenames << U"{} {}"_fmt(tilename, t);
 			}
