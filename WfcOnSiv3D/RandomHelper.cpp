@@ -1,5 +1,5 @@
-﻿#include "stdafx.h"
-#include "RandomHelper.hpp"
+﻿# include "stdafx.h"
+# include "RandomHelper.hpp"
 
 int32 RandomHelper::Random(const Array<double>& weights, double r)
 {

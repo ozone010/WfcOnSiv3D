@@ -1,13 +1,13 @@
-﻿#include "stdafx.h"
-#include "OverlappingModel.hpp"
+﻿# include "stdafx.h"
+# include "OverlappingModel.hpp"
 
-OverlappingModel::OverlappingModel(const String& name, int32 N, const Size& gridSize, bool periodicInput, bool periodic, int32 symmetry, bool ground, Heuristic heuristic)
-	: WfcModel(gridSize, N, periodic, heuristic) {
+OverlappingModel::OverlappingModel(const String& name, int32 N, const Size& m_gridSize, bool periodicInput, bool periodic, int32 symmetry, bool ground, Heuristic heuristic)
+	: WfcModel(m_gridSize, N, periodic, heuristic) {
 	auto bitmap = BitmapHelper::LoadBitmap(name);
 
 	Grid<uint8> sample(bitmap.size());
 
-	colors.clear();
+	m_colors.clear();
 
 	for (auto y : step(sample.height())) {
 		for (auto x : step(sample.width())) {
@@ -15,13 +15,13 @@ OverlappingModel::OverlappingModel(const String& name, int32 N, const Size& grid
 			const Color& color = bitmap[y][x];
 			int32 k = 0;
 
-			for (; k < colors.size(); k++) {
-				if (colors[k] == color) {
+			for (; k < m_colors.size(); k++) {
+				if (m_colors[k] == color) {
 					break;
 				}
 			}
-			if (k == colors.size()) {
-				colors << color;
+			if (k == m_colors.size()) {
+				m_colors << color;
 			}
 			sample[y][x] = static_cast<uint8>(k);
 		}
@@ -50,15 +50,15 @@ OverlappingModel::OverlappingModel(const String& name, int32 N, const Size& grid
 		return result;
 		};
 
-	patterns.clear();
+	m_patterns.clear();
 	HashTable<int64, int32> patternIndices;
 	Array<double> weightList;
 
-	int32 C = colors.size();
-	int32 xmax = periodicInput ? bitmap.width() : bitmap.width() - N + 1;
-	int32 ymax = periodicInput ? bitmap.height() : bitmap.height() - N + 1;
-	for (int32 y = 0; y < ymax; y++) {
-		for (int32 x = 0; x < xmax; x++) {
+	const int32 C = m_colors.size();
+	const int32 xmax = periodicInput ? bitmap.width() : bitmap.width() - N + 1;
+	const int32 ymax = periodicInput ? bitmap.height() : bitmap.height() - N + 1;
+	for (auto y = 0; y < ymax; y++) {
+		for (auto x = 0; x < xmax; x++) {
 			Array<Grid<uint8>> ps(8, Grid<uint8>(N, N));
 
 			ps[0] = pattern([&](int32 dx, int32 dy) -> uint8 {return sample[(y + dy) % bitmap.height()][(x + dx) % bitmap.width()]; }, N);
@@ -86,15 +86,15 @@ OverlappingModel::OverlappingModel(const String& name, int32 N, const Size& grid
 					// キーが存在しない場合
 					patternIndices[h] = weightList.size();
 					weightList << 1.0;
-					patterns << p;
+					m_patterns << p;
 				}
 			}
 		}
 	}
 
-	weights = weightList;
-	T = weights.size();
-	this->ground = ground;
+	m_weights = weightList;
+	m_T = m_weights.size();
+	this->m_ground = ground;
 
 	static auto agrees = [](const Grid<uint8>& p1, const Grid<uint8>& p2, const Point& dxy, int32 N) {
 		const int32 xmin = dxy.x < 0 ? 0 : dxy.x, xmax = dxy.x < 0 ? dxy.x + N : N;
@@ -109,36 +109,36 @@ OverlappingModel::OverlappingModel(const String& name, int32 N, const Size& grid
 		return true;
 		};
 
-	propagator.resize(4);
+	m_propagator.resize(4);
 	for (int32 d = 0; d < 4; d++) {
-		propagator[d].resize(T);
-		for (int32 t = 0; t < T; t++) {
+		m_propagator[d].resize(m_T);
+		for (int32 t = 0; t < m_T; t++) {
 			Array<int32> list;
-			for (int32 t2 = 0; t2 < T; t2++)
-				if (agrees(patterns[t], patterns[t2], dxy[d], N))
+			for (int32 t2 = 0; t2 < m_T; t2++)
+				if (agrees(m_patterns[t], m_patterns[t2], dxy[d], N))
 					list.push_back(t2);
-			propagator[d][t] = list;
+			m_propagator[d][t] = list;
 		}
 	}
 }
 
-Image OverlappingModel::ToImage() const
+Image OverlappingModel::toImage() const
 {
-	Grid<Color> bitmap(gridSize);
+	Grid<Color> bitmap(m_gridSize);
 
-	if (observed[0][0] >= 0) {
-		for (int32 y = 0; y < gridSize.y; y++) {
-			int32 dy = y < gridSize.y - N + 1 ? 0 : N - 1;
+	if (m_observed[0][0] >= 0) {
+		for (int32 y = 0; y < m_gridSize.y; y++) {
+			int32 dy = y < m_gridSize.y - m_N + 1 ? 0 : m_N - 1;
 
-			for (int32 x = 0; x < gridSize.x; x++) {
-				int32 dx = x < gridSize.x - N + 1 ? 0 : N - 1;
-				bitmap[y][x] = colors[patterns[observed[y - dy][x - dx]][dy][dx]];
+			for (int32 x = 0; x < m_gridSize.x; x++) {
+				int32 dx = x < m_gridSize.x - m_N + 1 ? 0 : m_N - 1;
+				bitmap[y][x] = m_colors[m_patterns[m_observed[y - dy][x - dx]][dy][dx]];
 			}
 		}
 	}
 	else {
-		for (auto y : step(wave.height())) {
-			for (auto x : step(wave.width())) {
+		for (auto y : step(m_wave.height())) {
+			for (auto x : step(m_wave.width())) {
 
 				int32 contributors = 0;
 
@@ -146,24 +146,24 @@ Image OverlappingModel::ToImage() const
 				int32 g{ 0 };
 				int32 b{ 0 };
 
-				for (int32 dy = 0; dy < N; dy++) {
-					for (int32 dx = 0; dx < N; dx++) {
+				for (int32 dy = 0; dy < m_N; dy++) {
+					for (int32 dx = 0; dx < m_N; dx++) {
 						auto sxy = Point{ x, y } - Point{ dx ,dy };
 
 						if (sxy.x < 0)
-							sxy.x += gridSize.x;
+							sxy.x += m_gridSize.x;
 
 						if (sxy.y < 0)
-							sxy.y += gridSize.y;
+							sxy.y += m_gridSize.y;
 
-						if (!periodic && (sxy.x + N > gridSize.x || sxy.y + N > gridSize.y || sxy.x < 0 || sxy.y < 0)) {
+						if (!m_periodic && (sxy.x + m_N > m_gridSize.x || sxy.y + m_N > m_gridSize.y || sxy.x < 0 || sxy.y < 0)) {
 							continue;
 						}
 
-						for (int32 t = 0; t < T; ++t) {
-							if (wave[sxy][t]) {
+						for (int32 t = 0; t < m_T; ++t) {
+							if (m_wave[sxy][t]) {
 								contributors++;
-								const auto& argb = colors[patterns[t][dy][dx]];
+								const auto& argb = m_colors[m_patterns[t][dy][dx]];
 								r += argb.r;
 								g += argb.g;
 								b += argb.b;

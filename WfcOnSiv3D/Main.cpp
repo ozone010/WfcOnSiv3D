@@ -29,8 +29,8 @@ void Main()
 		false, //ground
 		WfcModel::Heuristic::Entropy
 	};
-	olModel.Init();
-	olModel.Clear();
+	olModel.init();
+	olModel.clear();
 
 	SimpleTiledModel stModel{
 		U"tilesets/Summer.json",
@@ -40,8 +40,8 @@ void Main()
 		true, //blackBackground
 		WfcModel::Heuristic::Entropy
 	};
-	stModel.Init();
-	stModel.Clear();
+	stModel.init();
+	stModel.clear();
 
 	SimpleTiledModel st2Model{
 		U"tilesets/FloorPlan.json",
@@ -51,8 +51,8 @@ void Main()
 		false, //blackBackground
 		WfcModel::Heuristic::Entropy
 	};
-	st2Model.Init();
-	st2Model.Clear();
+	st2Model.init();
+	st2Model.clear();
 
 	//乱数のシード値
 	int32 olSeed = 0;
@@ -68,13 +68,13 @@ void Main()
 	Texture srcTexture{ SRC_IMG_PATH };
 
 	//生成した画像をテクスチャに変換
-	DynamicTexture olResultTexture(olModel.ImageSize());
-	DynamicTexture stResultTexture(stModel.ImageSize());
-	DynamicTexture st2ResultTexture(st2Model.ImageSize());
+	DynamicTexture olResultTexture(olModel.imageSize());
+	DynamicTexture stResultTexture(stModel.imageSize());
+	DynamicTexture st2ResultTexture(st2Model.imageSize());
 
-	olResultTexture.fill(olModel.ToImage());
-	stResultTexture.fill(stModel.ToImage());
-	st2ResultTexture.fill(st2Model.ToImage());
+	olResultTexture.fill(olModel.toImage());
+	stResultTexture.fill(stModel.toImage());
+	st2ResultTexture.fill(st2Model.toImage());
 
 
 
@@ -90,30 +90,30 @@ void Main()
 			if (SimpleGUI::Button(U"Generate", Vec2{ 10, 10 } + Vec2{ shitX , 0 })) {
 
 				//成功するまで生成
-				for (olRetryCount = 0; not olModel.Run(olSeed = Random<int32>(INT_MIN, INT_MAX), -1); ++olRetryCount);
+				for (olRetryCount = 0; not olModel.run(olSeed = Random<int32>(INT_MIN, INT_MAX), -1); ++olRetryCount);
 
 				//生成した画像をテクスチャに変換
-				olResultTexture.fill(olModel.ToImage());
+				olResultTexture.fill(olModel.toImage());
 			}
 			//Clearボタン
 			if (SimpleGUI::Button(U"Clear", Vec2{ 10 , 50 } + Vec2{ shitX , 0 })) {
-				olModel.Clear();
-				olResultTexture.fill(olModel.ToImage());
+				olModel.clear();
+				olResultTexture.fill(olModel.toImage());
 			}
 			//Stepボタン
-			if (SimpleGUI::Button(U"Step", Vec2{ 10 + 100, 50 } + Vec2{ shitX , 0 }, unspecified, not olModel.HasCompleted())) {
+			if (SimpleGUI::Button(U"Step", Vec2{ 10 + 100, 50 } + Vec2{ shitX , 0 }, unspecified, not olModel.hasCompleted())) {
 
 				//1ステップ
-				olModel.RunOneStep();
+				olModel.runOneStep();
 
 				//生成した画像をテクスチャに変換
-				olResultTexture.fill(olModel.ToImage());
+				olResultTexture.fill(olModel.toImage());
 			}
 
 			//情報の表示
 			font(U"seed: {}"_fmt(olSeed)).draw(16, Vec2{ 10, 100 } + Vec2{ shitX , 0 });
 			font(U"retryCount: {}"_fmt(olRetryCount)).draw(16, Vec2{ 10, 125 } + Vec2{ shitX , 0 });
-			font(U"hasCompleted: {}"_fmt(olModel.HasCompleted())).draw(16, Vec2{ 10, 150 } + Vec2{ shitX , 0 });
+			font(U"hasCompleted: {}"_fmt(olModel.hasCompleted())).draw(16, Vec2{ 10, 150 } + Vec2{ shitX , 0 });
 			srcTexture.scaled(3).draw(Vec2{ 200, 100 } + Vec2{ shitX , 0 });
 
 			//生成画像を表示
@@ -128,30 +128,30 @@ void Main()
 			if (SimpleGUI::Button(U"Generate", Vec2{ 10, 10 } + Vec2{ shitX , 0 })) {
 
 				//成功するまで生成
-				for (stRetryCount = 0; not stModel.Run(stSeed = Random<int32>(INT_MIN, INT_MAX), -1); ++stRetryCount);
+				for (stRetryCount = 0; not stModel.run(stSeed = Random<int32>(INT_MIN, INT_MAX), -1); ++stRetryCount);
 
 				//生成した画像をテクスチャに変換
-				stResultTexture.fill(stModel.ToImage());
+				stResultTexture.fill(stModel.toImage());
 			}
 			//Clearボタン
 			if (SimpleGUI::Button(U"Clear", Vec2{ 10 , 50 } + Vec2{ shitX , 0 })) {
-				stModel.Clear();
-				stResultTexture.fill(stModel.ToImage());
+				stModel.clear();
+				stResultTexture.fill(stModel.toImage());
 			}
 			//Stepボタン
-			if (SimpleGUI::Button(U"Step", Vec2{ 10 + 100, 50 } + Vec2{ shitX , 0 }, unspecified, not stModel.HasCompleted())) {
+			if (SimpleGUI::Button(U"Step", Vec2{ 10 + 100, 50 } + Vec2{ shitX , 0 }, unspecified, not stModel.hasCompleted())) {
 
 				//1ステップ
-				stModel.RunOneStep();
+				stModel.runOneStep();
 
 				//生成した画像をテクスチャに変換
-				stResultTexture.fill(stModel.ToImage());
+				stResultTexture.fill(stModel.toImage());
 			}
 
 			//情報の表示
 			font(U"seed: {}"_fmt(stSeed)).draw(16, Vec2{ 10 , 100 } + Vec2{ shitX , 0 });
 			font(U"retryCount: {}"_fmt(stRetryCount)).draw(16, Vec2{ 10 , 125 } + Vec2{ shitX , 0 });
-			font(U"hasCompleted: {}"_fmt(stModel.HasCompleted())).draw(16, Vec2{ 10 , 150 } + Vec2{ shitX , 0 });
+			font(U"hasCompleted: {}"_fmt(stModel.hasCompleted())).draw(16, Vec2{ 10 , 150 } + Vec2{ shitX , 0 });
 
 			//生成画像を表示
 			stResultTexture.resized(300).draw(Vec2{ 10, 180 } + Vec2{ shitX , 0 });
@@ -166,30 +166,30 @@ void Main()
 			if (SimpleGUI::Button(U"Generate", Vec2{ 10, 10 } + Vec2{ shitX , 0 })) {
 
 				//成功するまで生成
-				for (st2RetryCount = 0; not st2Model.Run(st2Seed = Random<int32>(INT_MIN, INT_MAX), -1); ++st2RetryCount);
+				for (st2RetryCount = 0; not st2Model.run(st2Seed = Random<int32>(INT_MIN, INT_MAX), -1); ++st2RetryCount);
 
 				//生成した画像をテクスチャに変換
-				st2ResultTexture.fill(st2Model.ToImage());
+				st2ResultTexture.fill(st2Model.toImage());
 			}
 			//Clearボタン
 			if (SimpleGUI::Button(U"Clear", Vec2{ 10 , 50 } + Vec2{ shitX , 0 })) {
-				st2Model.Clear();
-				st2ResultTexture.fill(st2Model.ToImage());
+				st2Model.clear();
+				st2ResultTexture.fill(st2Model.toImage());
 			}
 			//Stepボタン
-			if (SimpleGUI::Button(U"Step", Vec2{ 10 + 100, 50 } + Vec2{ shitX , 0 }, unspecified, not st2Model.HasCompleted())) {
+			if (SimpleGUI::Button(U"Step", Vec2{ 10 + 100, 50 } + Vec2{ shitX , 0 }, unspecified, not st2Model.hasCompleted())) {
 
 				//1ステップ
-				st2Model.RunOneStep();
+				st2Model.runOneStep();
 
 				//生成した画像をテクスチャに変換
-				st2ResultTexture.fill(st2Model.ToImage());
+				st2ResultTexture.fill(st2Model.toImage());
 			}
 
 			//情報の表示
 			font(U"seed: {}"_fmt(st2Seed)).draw(16, Vec2{ 10 , 100 } + Vec2{ shitX , 0 });
 			font(U"retryCount: {}"_fmt(st2RetryCount)).draw(16, Vec2{ 10 , 125 } + Vec2{ shitX , 0 });
-			font(U"hasCompleted: {}"_fmt(st2Model.HasCompleted())).draw(16, Vec2{ 10 , 150 } + Vec2{ shitX , 0 });
+			font(U"hasCompleted: {}"_fmt(st2Model.hasCompleted())).draw(16, Vec2{ 10 , 150 } + Vec2{ shitX , 0 });
 
 			//生成画像を表示
 			st2ResultTexture.resized(300).draw(Vec2{ 10, 180 } + Vec2{ shitX , 0 });
