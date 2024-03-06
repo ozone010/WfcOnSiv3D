@@ -1,8 +1,8 @@
-﻿#include "stdafx.h"
-#include "SimpleTiledModel.hpp"
+﻿# include "stdafx.h"
+# include "SimpleTiledModel.hpp"
 
-SimpleTiledModel::SimpleTiledModel(const String& jsonPath, const String& subsetName, const Size& gridSize, bool periodic, bool blackBackground, Heuristic heuristic)
-	: WfcModel(gridSize, 1, periodic, heuristic), blackBackground(blackBackground)
+SimpleTiledModel::SimpleTiledModel(const String& jsonPath, const String& subsetName, const Size& m_gridSize, bool periodic, bool blackBackground, Heuristic heuristic)
+	: WfcModel(m_gridSize, 1, periodic, heuristic), m_blackBackground(blackBackground)
 {
 	const auto jsonFileName = FileSystem::BaseName(jsonPath);
 
@@ -44,7 +44,7 @@ SimpleTiledModel::SimpleTiledModel(const String& jsonPath, const String& subsetN
 		//b is reflection
 		std::function<int32(int32)> b;
 
-		auto sym = jTile.hasElement(U"symmetry") ? jTile[U"symmetry"].getString() : U"C";
+		const auto sym = jTile.hasElement(U"symmetry") ? jTile[U"symmetry"].getString() : U"C";
 
 		int32 cardinality = 0;
 		if (sym == U"L")
@@ -84,8 +84,8 @@ SimpleTiledModel::SimpleTiledModel(const String& jsonPath, const String& subsetN
 			b = [](int32 i) { return i; };
 		}
 
-		T = action.size();
-		firstOccurrence.emplace(tilename, T);
+		m_T = action.size();
+		firstOccurrence.emplace(tilename, m_T);
 
 		Array<Array<int32>> map(cardinality, Array<int32>(8, 0));
 		for (int t = 0; t < cardinality; ++t)
@@ -100,7 +100,7 @@ SimpleTiledModel::SimpleTiledModel(const String& jsonPath, const String& subsetN
 			map[t][7] = b(a(a(a(t))));
 
 			for (int s = 0; s < 8; ++s) {
-				map[t][s] += T;
+				map[t][s] += m_T;
 			}
 
 			action << map[t];
@@ -108,131 +108,131 @@ SimpleTiledModel::SimpleTiledModel(const String& jsonPath, const String& subsetN
 
 		if (unique)
 		{
-			for (int t = 0; t < cardinality; ++t)
+			for (auto t = 0; t < cardinality; ++t)
 			{
 				auto x = U"tilesets/{}/{} {}.png"_fmt(jsonFileName, tilename, t);
 				auto bitmap = BitmapHelper::LoadBitmap(U"tilesets/{}/{} {}.png"_fmt(jsonFileName, tilename, t));
-				tilesize = bitmap.width();
+				m_tilesize = bitmap.width();
 
-				tiles << bitmap;
-				tilenames << U"{} {}"_fmt(tilename, t);
+				m_tiles << bitmap;
+				m_tilenames << U"{} {}"_fmt(tilename, t);
 			}
 		}
 		else
 		{
 			auto bitmap = BitmapHelper::LoadBitmap(U"tilesets/{}/{}.png"_fmt(jsonFileName, tilename));
-			tilesize = bitmap.width();
+			m_tilesize = bitmap.width();
 
-			tiles << bitmap;
-			tilenames << U"{} 0"_fmt(tilename);
+			m_tiles << bitmap;
+			m_tilenames << U"{} 0"_fmt(tilename);
 
-			for (int32 t = 1; t < cardinality; ++t)
+			for (auto t = 1; t < cardinality; ++t)
 			{
 				if (t <= 3) {
-					tiles << GridHelper::rotated270(tiles[T + t - 1]);
+					m_tiles << GridHelper::rotated270(m_tiles[m_T + t - 1]);
 				}
 				if (t >= 4) {
-					tiles << GridHelper::mirrored(tiles[T + t - 4]);
+					m_tiles << GridHelper::mirrored(m_tiles[m_T + t - 4]);
 				}
-				tilenames << U"{} {}"_fmt(tilename, t);
+				m_tilenames << U"{} {}"_fmt(tilename, t);
 			}
 		}
 
-		for (int t = 0; t < cardinality; ++t) {
+		for (auto t = 0; t < cardinality; ++t) {
 			weightList << (jTile.hasElement(U"weight") ? jTile[U"weight"].get<double>() : 1.0);
 		}
 	}
 
 
-	T = action.size();
-	weights = Array<double>(weightList);
+	m_T = action.size();
+	m_weights = Array<double>(weightList);
 
-	propagator.resize(4);
-	Array<Array<Array<bool>>> densePropagator(4, Array<Array<bool>>(T, Array<bool>(T)));
+	m_propagator.resize(4);
+	Array<Array<Array<bool>>> densem_propagator(4, Array<Array<bool>>(m_T, Array<bool>(m_T)));
 
-	for (int32 d = 0; d < 4; ++d) {
-		propagator[d].resize(T);
-		for (int32 t = 0; t < T; ++t) {
-			densePropagator[d][t] = Array<bool>(T, false);
+	for (auto d = 0; d < 4; ++d) {
+		m_propagator[d].resize(m_T);
+		for (auto t = 0; t < m_T; ++t) {
+			densem_propagator[d][t] = Array<bool>(m_T, false);
 		}
 	}
 
 	for (const auto&& [key, jNeighbor] : jroot[U"neighbors"][U"neighbor"]) {
-		Array<String> left = jNeighbor[U"left"].getString().split(U' ');
-		Array<String> right = jNeighbor[U"right"].getString().split(U' ');
+		const Array<String> left = jNeighbor[U"left"].getString().split(U' ');
+		const Array<String> right = jNeighbor[U"right"].getString().split(U' ');
 
 		if (not subset.isEmpty() && (not subset.contains(left[0]) || not subset.contains(right[0]))) {
 			continue;
 		}
 
-		int32 L = action[firstOccurrence[left[0]]][left.size() == 1 ? 0 : Parse<int32>(left[1])];
-		int32 D = action[L][1];
-		int32 R = action[firstOccurrence[right[0]]][right.size() == 1 ? 0 : Parse<int32>(right[1])];
-		int32 U = action[R][1];
+		const int32 L = action[firstOccurrence[left[0]]][left.size() == 1 ? 0 : Parse<int32>(left[1])];
+		const int32 D = action[L][1];
+		const int32 R = action[firstOccurrence[right[0]]][right.size() == 1 ? 0 : Parse<int32>(right[1])];
+		const int32 U = action[R][1];
 
-		densePropagator[0][R][L] = true;
-		densePropagator[0][action[R][6]][action[L][6]] = true;
-		densePropagator[0][action[L][4]][action[R][4]] = true;
-		densePropagator[0][action[L][2]][action[R][2]] = true;
+		densem_propagator[0][R][L] = true;
+		densem_propagator[0][action[R][6]][action[L][6]] = true;
+		densem_propagator[0][action[L][4]][action[R][4]] = true;
+		densem_propagator[0][action[L][2]][action[R][2]] = true;
 
-		densePropagator[1][U][D] = true;
-		densePropagator[1][action[D][6]][action[U][6]] = true;
-		densePropagator[1][action[U][4]][action[D][4]] = true;
-		densePropagator[1][action[D][2]][action[U][2]] = true;
+		densem_propagator[1][U][D] = true;
+		densem_propagator[1][action[D][6]][action[U][6]] = true;
+		densem_propagator[1][action[U][4]][action[D][4]] = true;
+		densem_propagator[1][action[D][2]][action[U][2]] = true;
 	}
 
-	for (int t2 = 0; t2 < T; ++t2) {
-		for (int t1 = 0; t1 < T; ++t1) {
-			densePropagator[2][t2][t1] = densePropagator[0][t1][t2];
-			densePropagator[3][t2][t1] = densePropagator[1][t1][t2];
+	for (auto t2 = 0; t2 < m_T; ++t2) {
+		for (auto t1 = 0; t1 < m_T; ++t1) {
+			densem_propagator[2][t2][t1] = densem_propagator[0][t1][t2];
+			densem_propagator[3][t2][t1] = densem_propagator[1][t1][t2];
 		}
 	}
 
 
-	Array<Array<Array<int32>>> sparsePropagator(4, Array<Array<int32>>(T));
-	for (int32 d = 0; d < 4; ++d) {
-		for (int32 t = 0; t < T; ++t) {
-			sparsePropagator[d][t] = Array<int>();
+	Array<Array<Array<int32>>> sparsem_propagator(4, Array<Array<int32>>(m_T));
+	for (auto d = 0; d < 4; ++d) {
+		for (auto t = 0; t < m_T; ++t) {
+			sparsem_propagator[d][t] = Array<int>();
 		}
 	}
 
-	for (int32 d = 0; d < 4; ++d) {
-		for (int32 t1 = 0; t1 < T; ++t1) {
-			Array<int32>& sp = sparsePropagator[d][t1];
-			Array<bool>& tp = densePropagator[d][t1];
+	for (auto d = 0; d < 4; ++d) {
+		for (auto t1 = 0; t1 < m_T; ++t1) {
+			Array<int32>& sp = sparsem_propagator[d][t1];
+			Array<bool>& tp = densem_propagator[d][t1];
 
-			for (int32 t2 = 0; t2 < T; ++t2) {
+			for (int32 t2 = 0; t2 < m_T; ++t2) {
 				if (tp[t2]) {
 					sp << (t2);
 				}
 			}
 
-			int32 ST = sp.size();
+			const int32 ST = sp.size();
 			if (ST == 0) {
-				std::cout << "ERROR: tile " << tilenames[t1] << " has no neighbors in direction " << d << std::endl;
+				std::cout << "ERROR: tile " << m_tilenames[t1] << " has no neighbors in direction " << d << std::endl;
 			}
 
-			propagator[d][t1].resize(ST);
+			m_propagator[d][t1].resize(ST);
 			for (int st = 0; st < ST; ++st) {
-				propagator[d][t1][st] = sp[st];
+				m_propagator[d][t1][st] = sp[st];
 			}
 		}
 	}
 }
 
-Image SimpleTiledModel::ToImage() const
+Image SimpleTiledModel::toImage() const
 {
-	Grid<Color> bitmapData(gridSize * tilesize);
-	if (observed[0][0] >= 0)
+	Grid<Color> bitmapData(m_gridSize * m_tilesize);
+	if (m_observed[0][0] >= 0)
 	{
-		for (int32 x = 0; x < gridSize.x; ++x) {
-			for (int32 y = 0; y < gridSize.y; ++y)
+		for (int32 x = 0; x < m_gridSize.x; ++x) {
+			for (int32 y = 0; y < m_gridSize.y; ++y)
 			{
-				const auto& tile = tiles[observed[y][x]];
-				for (int32 dy = 0; dy < tilesize; ++dy) {
-					for (int32 dx = 0; dx < tilesize; ++dx) {
+				const auto& tile = m_tiles[m_observed[y][x]];
+				for (int32 dy = 0; dy < m_tilesize; ++dy) {
+					for (int32 dx = 0; dx < m_tilesize; ++dx) {
 						const auto& pixel = tile[dy][dx];
-						bitmapData[y * tilesize + dy][x * tilesize + dx] = pixel;
+						bitmapData[y * m_tilesize + dy][x * m_tilesize + dx] = pixel;
 					}
 				}
 			}
@@ -240,35 +240,35 @@ Image SimpleTiledModel::ToImage() const
 	}
 	else
 	{
-		for (auto x : step(wave.height())) {
-			for (auto y : step(wave.width())) {
-				if (blackBackground && sumsOfOnes[y][x] == T) {
-					for (int32 yt = 0; yt < tilesize; ++yt) {
-						for (int32 xt = 0; xt < tilesize; ++xt) {
-							bitmapData[y * tilesize + yt][x * tilesize + xt] = Color(0, 0, 0, 255);
+		for (auto x : step(m_wave.height())) {
+			for (auto y : step(m_wave.width())) {
+				if (m_blackBackground && m_sumsOfOnes[y][x] == m_T) {
+					for (int32 yt = 0; yt < m_tilesize; ++yt) {
+						for (int32 xt = 0; xt < m_tilesize; ++xt) {
+							bitmapData[y * m_tilesize + yt][x * m_tilesize + xt] = Color(0, 0, 0, 255);
 						}
 					}
 				}
 				else
 				{
-					Array<bool> w = wave[y][x];
-					double normalization{ 1.0 / sumsOfWeights[y][x] };
-					for (int32 yt = 0; yt < tilesize; ++yt) {
-						for (int32 xt = 0; xt < tilesize; ++xt) {
+					Array<bool> w = m_wave[y][x];
+					double normalization{ 1.0 / m_sumsOfWeights[y][x] };
+					for (int32 yt = 0; yt < m_tilesize; ++yt) {
+						for (int32 xt = 0; xt < m_tilesize; ++xt) {
 							double r{ 0 };
 							double g{ 0 };
 							double b{ 0 };
 
-							for (int32 t = 0; t < T; ++t) {
+							for (int32 t = 0; t < m_T; ++t) {
 								if (w[t])
 								{
-									const auto& argb = tiles[t][yt][xt];
-									r += argb.r * weights[t] * normalization;
-									g += argb.g * weights[t] * normalization;
-									b += argb.b * weights[t] * normalization;
+									const auto& argb = m_tiles[t][yt][xt];
+									r += argb.r * m_weights[t] * normalization;
+									g += argb.g * m_weights[t] * normalization;
+									b += argb.b * m_weights[t] * normalization;
 								}
 							}
-							bitmapData[y * tilesize + yt][x * tilesize + xt] =
+							bitmapData[y * m_tilesize + yt][x * m_tilesize + xt] =
 								Color(
 									static_cast<uint8>(r),
 									static_cast<uint8>(g),

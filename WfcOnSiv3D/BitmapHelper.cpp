@@ -1,5 +1,5 @@
-﻿#include "stdafx.h"
-#include "BitmapHelper.hpp"
+﻿# include "stdafx.h"
+# include "BitmapHelper.hpp"
 
 Grid<Color> BitmapHelper::LoadBitmap(const FilePath& path) {
 	const Image image(path);

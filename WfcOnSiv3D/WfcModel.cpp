@@ -1,87 +1,87 @@
-﻿#include "stdafx.h"
-#include "WfcModel.hpp"
+﻿# include "stdafx.h"
+# include "WfcModel.hpp"
 
 WfcModel::WfcModel(const Size& gridSize, int32 N, bool periodic, Heuristic heuristic):
-	gridSize(gridSize), N(N), periodic(periodic), heuristic(heuristic),
-	observed(gridSize), sumsOfOnes(gridSize), sumsOfWeights(gridSize), sumsOfWeightLogWeights(gridSize), entropies(gridSize) {}
+	m_gridSize(gridSize), m_N(N), m_periodic(periodic), m_heuristic(heuristic),
+	m_observed(gridSize), m_sumsOfOnes(gridSize), m_sumsOfWeights(gridSize), m_sumsOfWeightLogWeights(gridSize), m_entropies(gridSize) {}
 
-void WfcModel::Init()
+void WfcModel::init()
 {
-	wave.resize(gridSize, Array<bool>(T));
-	compatible.resize(wave.size(), Array<Array<int32>>(T, Array<int32>(4)));
-	distribution.resize(T);
+	m_wave.resize(m_gridSize, Array<bool>(m_T));
+	m_compatible.resize(m_wave.size(), Array<Array<int32>>(m_T, Array<int32>(4)));
+	m_distribution.resize(m_T);
 
-	weightLogWeights.resize(T);
-	sumOfWeights = 0;
-	sumOfWeightLogWeights = 0;
+	m_weightLogWeights.resize(m_T);
+	m_sumOfWeights = 0;
+	m_sumOfWeightLogWeights = 0;
 
-	for (int32 t = 0; t < T; t++) {
-		weightLogWeights[t] = weights[t] * Math::Log(weights[t]);
-		sumOfWeights += weights[t];
-		sumOfWeightLogWeights += weightLogWeights[t];
+	for (int32 t = 0; t < m_T; t++) {
+		m_weightLogWeights[t] = m_weights[t] * Math::Log(m_weights[t]);
+		m_sumOfWeights += m_weights[t];
+		m_sumOfWeightLogWeights += m_weightLogWeights[t];
 	}
 
-	startingEntropy = Math::Log(sumOfWeights) - sumOfWeightLogWeights / sumOfWeights;
+	m_startingEntropy = Math::Log(m_sumOfWeights) - m_sumOfWeightLogWeights / m_sumOfWeights;
 
-	stack.resize(wave.num_elements() * T, std::make_pair<Point, int32>({ 0,0 }, 0));
-	stacksize = 0;
+	m_stack.resize(m_wave.num_elements() * m_T, std::make_pair<Point, int32>({ 0,0 }, 0));
+	m_stacksize = 0;
 }
 
-void WfcModel::Clear() {
-	for (auto y : step(wave.height())) {
-		for (auto x : step(wave.width())) {
-			for (int32 t = 0; t < T; t++) {
-				wave[y][x][t] = true;
+void WfcModel::clear() {
+	for (auto y : step(m_wave.height())) {
+		for (auto x : step(m_wave.width())) {
+			for (int32 t = 0; t < m_T; t++) {
+				m_wave[y][x][t] = true;
 				for (int32 d = 0; d < 4; d++) {
-					compatible[y][x][t][d] = propagator[opposite[d]][t].size();
+					m_compatible[y][x][t][d] = m_propagator[opposite[d]][t].size();
 				}
 			}
 
-			sumsOfOnes[y][x] = weights.size();
-			sumsOfWeights[y][x] = sumOfWeights;
-			sumsOfWeightLogWeights[y][x] = sumOfWeightLogWeights;
-			entropies[y][x] = startingEntropy;
-			observed[y][x] = -1;
+			m_sumsOfOnes[y][x] = m_weights.size();
+			m_sumsOfWeights[y][x] = m_sumOfWeights;
+			m_sumsOfWeightLogWeights[y][x] = m_sumOfWeightLogWeights;
+			m_entropies[y][x] = m_startingEntropy;
+			m_observed[y][x] = -1;
 		}
 	}
-	observedSoFar = 0;
+	m_observedSoFar = 0;
 
-	if (ground) {
-		for (int32 x = 0; x < gridSize.x; x++) {
-			for (int32 t = 0; t < T - 1; t++) {
-				Ban({ x , gridSize.y - 1 }, t);
+	if (m_ground) {
+		for (int32 x = 0; x < m_gridSize.x; x++) {
+			for (int32 t = 0; t < m_T - 1; t++) {
+				ban({ x , m_gridSize.y - 1 }, t);
 			}
-			for (int32 y = 0; y < gridSize.y - 1; y++) {
-				Ban({ x , y }, T - 1);
+			for (int32 y = 0; y < m_gridSize.y - 1; y++) {
+				ban({ x , y }, m_T - 1);
 			}
 		}
-		Propagate();
+		propagate();
 	}
 }
 
-bool WfcModel::Run(int32 seed, int32 limit) {
-	if (wave.empty()) {
-		Init();
+bool WfcModel::run(int32 seed, int32 limit) {
+	if (m_wave.empty()) {
+		init();
 	}
 
-	Clear();
+	clear();
 	Reseed(seed);
 
-	for (int32 l = 0; l < limit || limit < 0; l++) {
-		auto node = NextUnobservedNode();
+	for (auto l = 0; l < limit || limit < 0; l++) {
+		auto node = nextUnm_observedNode();
 		if (node.x >= 0) {
-			Observe(node);
-			bool success = Propagate();
+			observe(node);
+			bool success = propagate();
 			if (!success) {
 				return false;
 			}
 		}
 		else {
-			for (auto y : step(wave.height())) {
-				for (auto x : step(wave.width())) {
-					for (int32 t = 0; t < T; t++) {
-						if (wave[y][x][t]) {
-							observed[y][x] = t;
+			for (auto y : step(m_wave.height())) {
+				for (auto x : step(m_wave.width())) {
+					for (int32 t = 0; t < m_T; t++) {
+						if (m_wave[y][x][t]) {
+							m_observed[y][x] = t;
 							break;
 						}
 					}
@@ -94,27 +94,27 @@ bool WfcModel::Run(int32 seed, int32 limit) {
 	return true;
 }
 
-void WfcModel::RunOneStep() {
+void WfcModel::runOneStep() {
 
-	if (wave.empty()) {
-		Init();
-		Clear();
+	if (m_wave.empty()) {
+		init();
+		clear();
 	}
 
-	auto node = NextUnobservedNode();
+	const auto node = nextUnm_observedNode();
 	if (node.x >= 0) {
-		Observe(node);
-		bool success = Propagate();
+		observe(node);
+		bool success = propagate();
 		if (!success) {
 			return;
 		}
 	}
 	else {
-		for (auto y : step(wave.height())) {
-			for (auto x : step(wave.width())) {
-				for (int32 t = 0; t < T; t++) {
-					if (wave[y][x][t] == true) {
-						observed[y][x] = t;
+		for (auto y : step(m_wave.height())) {
+			for (auto x : step(m_wave.width())) {
+				for (int32 t = 0; t < m_T; t++) {
+					if (m_wave[y][x][t] == true) {
+						m_observed[y][x] = t;
 						break;
 					}
 				}
@@ -124,20 +124,20 @@ void WfcModel::RunOneStep() {
 	}
 }
 
-bool WfcModel::HasCompleted() {
-	return not wave.isEmpty() && sumsOfOnes.asArray().sum() == sumsOfOnes.num_elements();
+bool WfcModel::hasCompleted() const {
+	return not m_wave.isEmpty() && m_sumsOfOnes.asArray().sum() == m_sumsOfOnes.num_elements();
 }
 
-Point WfcModel::NextUnobservedNode() {
-	if (heuristic == Heuristic::Scanline) {
-		for (auto y : step(wave.height())) {
-			for (auto x : step(wave.width())) {
+Point WfcModel::nextUnm_observedNode() {
+	if (m_heuristic == Heuristic::Scanline) {
+		for (auto y : step(m_wave.height())) {
+			for (auto x : step(m_wave.width())) {
 
-				if (!periodic && (y % gridSize.x + N > gridSize.x || y / gridSize.x + N > gridSize.y))
+				if (!m_periodic && (y % m_gridSize.x + m_N > m_gridSize.x || y / m_gridSize.x + m_N > m_gridSize.y))
 					continue;
 
-				if (sumsOfOnes[y][x] > 1) {
-					observedSoFar = y + 1;
+				if (m_sumsOfOnes[y][x] > 1) {
+					m_observedSoFar = y + 1;
 					return { x , y };;
 				}
 			}
@@ -147,13 +147,13 @@ Point WfcModel::NextUnobservedNode() {
 
 	double min = 1E+4;
 	Point argmin{ -1, -1 };
-	for (auto y : step(wave.height())) {
-		for (auto x : step(wave.width())) {
-			if (!periodic && (x % gridSize.x + N > gridSize.x || x / gridSize.x + N > gridSize.y))
+	for (auto y : step(m_wave.height())) {
+		for (auto x : step(m_wave.width())) {
+			if (!m_periodic && (x % m_gridSize.x + m_N > m_gridSize.x || x / m_gridSize.x + m_N > m_gridSize.y))
 				continue;
 
-			int32 remainingValues = sumsOfOnes[y][x];
-			double entropy = heuristic == Heuristic::Entropy ? entropies[y][x] : remainingValues;
+			int32 remainingValues = m_sumsOfOnes[y][x];
+			double entropy = m_heuristic == Heuristic::Entropy ? m_entropies[y][x] : remainingValues;
 
 			if (remainingValues > 1 && entropy <= min) {
 				double noise = 1E-6 * Random<double>(0, 1.0);
@@ -167,78 +167,77 @@ Point WfcModel::NextUnobservedNode() {
 	return argmin;
 }
 
-void WfcModel::Observe(const Point& node) {
-	const Array<bool>& w = wave[node.y][node.x];
+void WfcModel::observe(const Point& node) {
+	const Array<bool>& w = m_wave[node.y][node.x];
 
-	for (int32 t = 0; t < T; ++t)
-		distribution[t] = w[t] ? weights[t] : 0.0;
+	for (auto t = 0; t < m_T; ++t)
+		m_distribution[t] = w[t] ? m_weights[t] : 0.0;
 
-	int32 r = RandomHelper::Random(distribution, Random<double>(0, 1.0));
+	auto r = RandomHelper::Random(m_distribution, Random<double>(0, 1.0));
 
-	for (int32 t = 0; t < T; ++t) {
+	for (auto t = 0; t < m_T; ++t) {
 		if (w[t] != (t == r)) {
-			Ban(node, t);
+			ban(node, t);
 		}
 	}
 }
 
-bool WfcModel::Propagate() {
-	while (stacksize > 0) {
-		auto current = stack[stacksize - 1];
-		stacksize--;
+bool WfcModel::propagate() {
+	while (m_stacksize > 0) {
+		auto current = m_stack[m_stacksize - 1];
+		--m_stacksize;
 
 		auto xy1 = current.first;
 		int32 t1 = current.second;
 
-		for (int32 d = 0; d < 4; ++d) {
+		for (auto d = 0; d < 4; ++d) {
 			auto xy2 = xy1 + dxy[d];
 
-
-			if (!periodic && (xy2.x < 0 || xy2.y < 0 || xy2.x + N > gridSize.x || xy2.y + N > gridSize.y))
+			if (!m_periodic && (xy2.x < 0 || xy2.y < 0 || xy2.x + m_N > m_gridSize.x || xy2.y + m_N > m_gridSize.y))
 				continue;
 
 			if (xy2.x < 0)
-				xy2.x += gridSize.x;
-			else if (xy2.x >= gridSize.x)
-				xy2.x -= gridSize.x;
+				xy2.x += m_gridSize.x;
+			else if (xy2.x >= m_gridSize.x)
+				xy2.x -= m_gridSize.x;
 
 			if (xy2.y < 0)
-				xy2.y += gridSize.y;
-			else if (xy2.y >= gridSize.y)
-				xy2.y -= gridSize.y;
+				xy2.y += m_gridSize.y;
+			else if (xy2.y >= m_gridSize.y)
+				xy2.y -= m_gridSize.y;
 
-			Array<int32>& p = propagator[d][t1];
-			Array<Array<int32>>& compat = compatible[xy2];
+			Array<int32>& p = m_propagator[d][t1];
+			Array<Array<int32>>& compat = m_compatible[xy2];
 
-			for (int32 l = 0; l < p.size(); l++) {
+			for (auto l = 0; l < p.size(); l++) {
 				int32 t2 = p[l];
 				Array<int32>& comp = compat[t2];
 
 				comp[d]--;
 				if (comp[d] == 0) {
-					Ban(xy2, t2);
+					ban(xy2, t2);
 				}
 			}
 		}
 	}
 
-	return sumsOfOnes[0][0] > 0;
+	return m_sumsOfOnes[0][0] > 0;
 }
 
-void WfcModel::Ban(const Point& p, int32 t) {
-	wave[p][t] = false;
+void WfcModel::ban(const Point& p, int32 t) {
+	m_wave[p][t] = false;
 
-	Array<int32>& comp = compatible[p][t];
+	Array<int32>& comp = m_compatible[p][t];
 	for (int32 d = 0; d < 4; ++d) {
 		comp[d] = 0;
 	}
 
-	stack[stacksize++] = std::make_pair(p, t);
+	m_stack[m_stacksize++] = std::make_pair(p, t);
 
-	sumsOfOnes[p] -= 1;
-	sumsOfWeights[p] -= weights[t];
-	sumsOfWeightLogWeights[p] -= weightLogWeights[t];
+	m_sumsOfOnes[p] -= 1;
+	m_sumsOfWeights[p] -= m_weights[t];
+	m_sumsOfWeightLogWeights[p] -= m_weightLogWeights[t];
 
-	double sum = sumsOfWeights[p];
-	entropies[p] = Math::Log(sum) - sumsOfWeightLogWeights[p] / sum;
+	double sum = m_sumsOfWeights[p];
+	m_entropies[p] = Math::Log(sum) - m_sumsOfWeightLogWeights[p] / sum;
 }

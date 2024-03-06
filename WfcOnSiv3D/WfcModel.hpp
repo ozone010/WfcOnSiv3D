@@ -1,69 +1,72 @@
-﻿#pragma once
-#include "RandomHelper.hpp"
+﻿# pragma once
+# include "RandomHelper.hpp"
 
 class WfcModel {
 
 public:
 
-	enum Heuristic { Entropy, MRV, Scanline };
+	enum class Heuristic { Entropy, MRV, Scanline };
+
+	void init();
+
+	void clear();
+
+	bool run(int32 seed, int32 limit);
+
+	void runOneStep();
+
+	bool hasCompleted() const;
 
 protected:
 
 	WfcModel(const Size& gridSize, int32 N, bool periodic, Heuristic heuristic);
 
-	Grid<Array<bool>> wave;
+	Grid<Array<bool>> m_wave;
 
-	Array<Array<Array<int32>>> propagator;
-	Grid<Array<Array<int32>>> compatible;
-	Grid<int32> observed;
+	Array<Array<Array<int32>>> m_propagator;
+	Grid<Array<Array<int32>>> m_compatible;
+	Grid<int32> m_observed;
 
-	Array<std::pair<Point, int32>> stack;
-	int32 stacksize = 0;
-	int32 observedSoFar = 0;
+	int32 m_observedSoFar = 0;
 
-	Size gridSize{0,0};
+	Size m_gridSize{0,0};
 
-	int32 T = 0;
-	int32 N = 0;
-	bool periodic = false;
-	bool ground = false;
+	int32 m_T = 0;
+	int32 m_N = 0;
+	bool m_periodic = false;
+	bool m_ground = false;
 
-	Array<double> weights;
-	Array<double> weightLogWeights;
-	Array<double> distribution;
+	Array<double> m_weights;
+	Array<double> m_distribution;
 
-	Grid<int32> sumsOfOnes;
-	double sumOfWeights = 0;
-	double sumOfWeightLogWeights = 0;
-	double startingEntropy = 0;
-	Grid<double> sumsOfWeights;
-	Grid<double> sumsOfWeightLogWeights;
-	Grid<double> entropies;
+	Grid<int32> m_sumsOfOnes;
+	Grid<double> m_sumsOfWeights;
 
-	Heuristic heuristic;
+
+	Heuristic m_heuristic;
 
 	const Array<Point> dxy{ { -1, 0}, { 0, 1} , {1, 0},{ 0,-1} };
 	const Array<int32> opposite{ 2, 3, 0, 1 };
 
-public:
-	void Init();
-
-	void Clear();
-
-	bool Run(int32 seed, int32 limit);
-
-	void RunOneStep();
-
-	bool HasCompleted();
-
 private:
 
-	Point NextUnobservedNode();
+	Point nextUnm_observedNode();
 
-	void Observe(const Point& node);
+	void observe(const Point& node);
 
-	bool Propagate();
+	bool propagate();
 
-	void Ban(const Point& p, int32 t);
+	void ban(const Point& p, int32 t);
 
+	Array<std::pair<Point, int32>> m_stack;
+	int32 m_stacksize = 0;
+
+	Array<double> m_weightLogWeights;
+
+	Grid<double> m_sumsOfWeightLogWeights;
+	double m_sumOfWeightLogWeights = 0;
+	double m_sumOfWeights = 0;
+
+	Grid<double> m_entropies;
+	double m_startingEntropy = 0;
 };
